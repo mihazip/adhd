@@ -1,0 +1,11 @@
+{
+  "name": "adhd",
+  "owner": { "name": "mihazip", "url": "https://github.com/mihazip" },
+  "plugins": [
+    {
+      "name": "adhd",
+      "source": "./",
+      "description": "/adhd: a side pane that asks Haiku quick questions outside the main session."
+    }
+  ]
+}
