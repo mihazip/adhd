@@ -2,7 +2,7 @@ export type Exchange = { q: string; a: string; synopsis: string }
 
 declare module 'claude-code' {
   interface PluginState {
-    adhd: {
+    aside: {
       log: Exchange[]
       isBusy: boolean
       isAuto: boolean

@@ -1,11 +1,22 @@
 {
-  "name": "adhd",
-  "owner": { "name": "mihazip", "url": "https://github.com/mihazip" },
+  "name": "hyperfocus",
+  "owner": {
+    "name": "mihazip",
+    "url": "https://github.com/mihazip"
+  },
+  "metadata": {
+    "description": "Claude Code mods for keeping your focus while many agents work: side questions that never touch the main thread."
+  },
   "plugins": [
     {
-      "name": "adhd",
-      "source": "./",
-      "description": "/adhd: a side pane that asks Haiku quick questions outside the main session."
+      "name": "aside",
+      "source": "./plugins/aside",
+      "description": "/aside: a side pane that asks Haiku quick questions outside the main session, with an optional synopsis back to the prompt."
+    },
+    {
+      "name": "tangent",
+      "source": "./plugins/tangent",
+      "description": "Ask a question between triple stripes mid-sentence; the answer is written back into your draft in place."
     }
   ]
 }
