@@ -3,7 +3,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { Exchange } from '../types'
 
-const PANE = 'adhd'
+const PANE = 'aside'
 const MODEL = 'haiku'
 const SYSTEM =
   'You are a fast side-answer helper for a developer with scattered, casual questions. ' +
@@ -12,11 +12,11 @@ const SYSTEM =
   'Long lists are fine when asked: give them in full, compactly. Plain text or short markdown, no preamble, no filler.'
 const LEVELS = ['low', 'medium', 'high'] as const
 
-const log = atom({ plugin: 'adhd', key: 'log' } as const, [])
-const isBusy = atom({ plugin: 'adhd', key: 'isBusy' } as const, false)
-const isAuto = atom({ plugin: 'adhd', key: 'isAuto' } as const, false)
-const effort = atom({ plugin: 'adhd', key: 'effort' } as const, 'medium')
-const notice = atom({ plugin: 'adhd', key: 'notice' } as const, '')
+const log = atom({ plugin: 'aside', key: 'log' } as const, [])
+const isBusy = atom({ plugin: 'aside', key: 'isBusy' } as const, false)
+const isAuto = atom({ plugin: 'aside', key: 'isAuto' } as const, false)
+const effort = atom({ plugin: 'aside', key: 'effort' } as const, 'medium')
+const notice = atom({ plugin: 'aside', key: 'notice' } as const, '')
 
 async function ask($: EngineInterface, q: string): Promise<void> {
   const text = q.trim()
@@ -67,7 +67,7 @@ async function ask($: EngineInterface, q: string): Promise<void> {
 
 async function giveBack($: EngineInterface, item: Exchange): Promise<void> {
   const out = await $.prompt.fill({
-    text: `(side note from /adhd — Q: ${item.q} A: ${item.synopsis}) `,
+    text: `(side note from /aside — Q: ${item.q} A: ${item.synopsis}) `,
     mode: 'append',
   })
   await update($, notice, () =>
@@ -78,17 +78,17 @@ async function giveBack($: EngineInterface, item: Exchange): Promise<void> {
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: 'adhd',
+      name: 'aside',
       description: 'Side pane: ask Haiku quick questions outside the main session',
     })
 
     return next(e)
   })
 
-  on('command.run', { command: 'adhd' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'adhd (haiku)', focus: true })
+  on('command.run', { command: 'aside' }, async $ => {
+    await $.ui.open({ id: PANE, title: 'aside (haiku)', focus: true })
 
-    return { text: 'adhd pane opened. Type a question, Enter to ask.' }
+    return { text: 'aside pane opened. Type a question, Enter to ask.' }
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
