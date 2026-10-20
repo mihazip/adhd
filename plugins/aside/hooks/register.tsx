@@ -5,6 +5,8 @@ import type { Exchange } from '../types'
 
 const PANE = 'aside'
 const PANE_ROWS = 10
+const TRIGGER = '?? '
+const HINT = 'aside: type "?? " or /aside for a side pane'
 const MODEL = 'haiku'
 const SYSTEM =
   'You are a fast side-answer helper for a developer with scattered, casual questions. ' +
@@ -58,6 +60,7 @@ function flutter($: EngineInterface): void {
 }
 
 async function openPane($: EngineInterface): Promise<void> {
+  $.ui.status(undefined)
   await $.ui.open({ id: PANE, title: 'aside (haiku)', focus: true, closeOnEscape: true, rows: PANE_ROWS })
   flutter($)
 }
@@ -125,8 +128,21 @@ export const register: Register = on => {
       name: 'aside',
       description: 'Side pane: ask Haiku quick questions outside the main session',
     })
+    $.ui.status(HINT)
 
     return next(e)
+  })
+
+  // A draft that starts with "?? " opens the pane; the trigger is stripped from the draft.
+  on('prompt.edit', async ($, e, next) => {
+    const r = await next(e)
+    if (!r.text.startsWith(TRIGGER)) return r
+
+    $.clock.after(50, () => {
+      void openPane($)
+    })
+
+    return { ...r, text: r.text.slice(TRIGGER.length), cursor: 0 }
   })
 
   on('command.run', { command: 'aside' }, async $ => {

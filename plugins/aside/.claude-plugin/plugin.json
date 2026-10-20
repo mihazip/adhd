@@ -1,6 +1,6 @@
 {
   "name": "aside",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "/aside: a side pane with its own input box that asks Haiku quick questions outside the main session, with optional return of a compact synopsis to the prompt box.",
   "author": {
     "name": "mihazip",
