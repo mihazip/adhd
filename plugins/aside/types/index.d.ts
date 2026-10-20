@@ -9,6 +9,7 @@ declare module 'claude-code' {
       effort: string
       notice: string
       wing: number
+      isMore: boolean
     }
   }
 }

@@ -38,6 +38,13 @@ const effort = atom({ plugin: 'aside', key: 'effort' } as const, 'medium')
 const notice = atom({ plugin: 'aside', key: 'notice' } as const, '')
 // -1 = resting, 0-2 = wing frame; a timer drives it while the bird flutters.
 const wing = atom({ plugin: 'aside', key: 'wing' } as const, -1)
+const isMore = atom({ plugin: 'aside', key: 'isMore' } as const, false)
+
+// The pressed button vanishes, so hand the ring to the one that takes its place.
+async function setMore($: EngineInterface, on: boolean): Promise<void> {
+  await update($, isMore, () => on)
+  await $.ui.focus({ requestId: PANE, key: on ? 'return' : 'more' })
+}
 
 // Wing beats for FLUTTER_MS, then back to rest.
 function flutter($: EngineInterface): void {
@@ -135,6 +142,7 @@ export const register: Register = on => {
     const auto = await read($, isAuto)
     const lvl = await read($, effort)
     const note = await read($, notice)
+    const more = await read($, isMore)
     const room = Math.max(1, Math.floor(((e.viewport?.rows ?? 24) - 8) / 3))
     const lastItem = items[items.length - 1]
     const w = await read($, wing)
@@ -172,24 +180,32 @@ export const register: Register = on => {
         />
         <Text> </Text>
         <Box flexDirection="column">
-          <Button
-            key="return"
-            label="Return synopsis to prompt"
-            onPress={() => {
-              if (lastItem) void giveBack($, lastItem)
-            }}
-          />
-          <Button
-            key="auto"
-            label={auto ? 'Auto-return: on' : 'Auto-return: off'}
-            onPress={() => update($, isAuto, v => !v)}
-          />
-          <Button
-            key="effort"
-            label={`Effort: ${lvl}`}
-            onPress={() => update($, effort, v => LEVELS[(LEVELS.indexOf(v as (typeof LEVELS)[number]) + 1) % LEVELS.length])}
-          />
-          <Button key="clear" label="Clear" onPress={() => update($, log, () => [])} />
+          {!more && <Button key="more" label="more" onPress={() => setMore($, true)} />}
+          {more && (
+            <Button
+              key="return"
+              label="Return synopsis to prompt"
+              onPress={() => {
+                if (lastItem) void giveBack($, lastItem)
+              }}
+            />
+          )}
+          {more && (
+            <Button
+              key="auto"
+              label={auto ? 'Auto-return: on' : 'Auto-return: off'}
+              onPress={() => update($, isAuto, v => !v)}
+            />
+          )}
+          {more && (
+            <Button
+              key="effort"
+              label={`Effort: ${lvl}`}
+              onPress={() => update($, effort, v => LEVELS[(LEVELS.indexOf(v as (typeof LEVELS)[number]) + 1) % LEVELS.length])}
+            />
+          )}
+          {more && <Button key="clear" label="Clear" onPress={() => update($, log, () => [])} />}
+          {more && <Button key="less" label="less" onPress={() => setMore($, false)} />}
         </Box>
       </Box>
     )
