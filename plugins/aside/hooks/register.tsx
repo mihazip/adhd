@@ -4,6 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { Exchange } from '../types'
 
 const PANE = 'aside'
+const PANE_ROWS = 10
 const MODEL = 'haiku'
 const SYSTEM =
   'You are a fast side-answer helper for a developer with scattered, casual questions. ' +
@@ -50,7 +51,7 @@ function flutter($: EngineInterface): void {
 }
 
 async function openPane($: EngineInterface): Promise<void> {
-  await $.ui.open({ id: PANE, title: 'aside (haiku)', focus: true })
+  await $.ui.open({ id: PANE, title: 'aside (haiku)', focus: true, closeOnEscape: true, rows: PANE_ROWS })
   flutter($)
 }
 
@@ -141,7 +142,7 @@ export const register: Register = on => {
     const showBird = (e.props.scroll?.bodyRows ?? e.viewport?.rows ?? 24) >= BIRD_MIN_ROWS
 
     return (
-      <Box flexDirection="column" height={e.viewport?.rows} paddingX={1}>
+      <Box flexDirection="column" paddingX={1}>
         {showBird && (
           <Box flexDirection="column">
             {bird.map(row => (
