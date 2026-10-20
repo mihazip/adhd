@@ -12,6 +12,13 @@ const SYSTEM =
   'Long lists are fine when asked: give them in full, compactly. Plain text or short markdown, no preamble, no filler.'
 const LEVELS = ['low', 'medium', 'high'] as const
 
+// Claude's orange (hsl 15, 63%, 60%) rotated 165 degrees to teal at the same lightness, so the pane reads as related but distinct.
+const THEME = {
+  accent: '#59D9D9',
+  dim: 'inactive',
+  busy: 'warning',
+} as const
+
 const log = atom({ plugin: 'aside', key: 'log' } as const, [])
 const isBusy = atom({ plugin: 'aside', key: 'isBusy' } as const, false)
 const isAuto = atom({ plugin: 'aside', key: 'isAuto' } as const, false)
@@ -102,16 +109,16 @@ export const register: Register = on => {
     const lastItem = items[items.length - 1]
 
     return (
-      <Box flexDirection="column" backgroundColor="#06303A" height={e.viewport?.rows} paddingX={1}>
-        {items.length === 0 && <Text color="#AEA79F">Ask anything. Enter sends to Haiku, main session untouched.</Text>}
+      <Box flexDirection="column" height={e.viewport?.rows} paddingX={1}>
+        {items.length === 0 && <Text color={THEME.dim}>Ask anything. Enter sends to Haiku, main session untouched.</Text>}
         {items.slice(-room).map(it => (
           <Box flexDirection="column">
-            <Text bold color="#E95420">? {it.q}</Text>
+            <Text bold color={THEME.accent}>? {it.q}</Text>
             <Markdown text={it.a} />
           </Box>
         ))}
-        {busy && <Text color="#E9AD0C">Haiku is thinking...</Text>}
-        {note !== '' && <Text color="#33C7DE">{note}</Text>}
+        {busy && <Text color={THEME.busy}>Haiku is thinking...</Text>}
+        {note !== '' && <Text color={THEME.accent}>{note}</Text>}
         <Input
           key="q"
           placeholder="question"
