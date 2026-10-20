@@ -8,6 +8,7 @@ declare module 'claude-code' {
       isAuto: boolean
       effort: string
       notice: string
+      wing: number
     }
   }
 }

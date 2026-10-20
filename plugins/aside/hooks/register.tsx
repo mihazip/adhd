@@ -19,11 +19,40 @@ const THEME = {
   busy: 'warning',
 } as const
 
+// Hummingbird, 3 rows of quadrant blocks. Frames 0-2 are wings up, level, down; REST has them folded.
+const BIRD = [
+  ['  ▟▙       ', ' ▝████▄▄▖─ ', '   ▀▀▀▘    '],
+  ['           ', '▗▄████▄▄▖─ ', '   ▀▀▀▘    '],
+  ['           ', ' ▝████▄▄▖─ ', '  ▜█▛▘     '],
+] as const
+const REST = ['           ', '  ▗████▄▄▖─', '    ▀▀▀▘   '] as const
+const FLUTTER_MS = 1500
+const BEAT_MS = 70
+const BIRD_MIN_ROWS = 9
+
 const log = atom({ plugin: 'aside', key: 'log' } as const, [])
 const isBusy = atom({ plugin: 'aside', key: 'isBusy' } as const, false)
 const isAuto = atom({ plugin: 'aside', key: 'isAuto' } as const, false)
 const effort = atom({ plugin: 'aside', key: 'effort' } as const, 'medium')
 const notice = atom({ plugin: 'aside', key: 'notice' } as const, '')
+// -1 = resting, 0-2 = wing frame; a timer drives it while the bird flutters.
+const wing = atom({ plugin: 'aside', key: 'wing' } as const, -1)
+
+// Wing beats for FLUTTER_MS, then back to rest.
+function flutter($: EngineInterface): void {
+  const beat = $.clock.every(BEAT_MS, () => {
+    void update($, wing, w => (w + 1) % BIRD.length)
+  })
+  $.clock.after(FLUTTER_MS, () => {
+    beat.cancel()
+    void update($, wing, () => -1)
+  })
+}
+
+async function openPane($: EngineInterface): Promise<void> {
+  await $.ui.open({ id: PANE, title: 'aside (haiku)', focus: true })
+  flutter($)
+}
 
 async function ask($: EngineInterface, q: string): Promise<void> {
   const text = q.trim()
@@ -93,7 +122,7 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'aside' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'aside (haiku)', focus: true })
+    await openPane($)
 
     return { text: 'aside pane opened. Type a question, Enter to ask.' }
   })
@@ -107,9 +136,19 @@ export const register: Register = on => {
     const note = await read($, notice)
     const room = Math.max(1, Math.floor(((e.viewport?.rows ?? 24) - 8) / 3))
     const lastItem = items[items.length - 1]
+    const w = await read($, wing)
+    const bird = BIRD[w] ?? REST
+    const showBird = (e.props.scroll?.bodyRows ?? e.viewport?.rows ?? 24) >= BIRD_MIN_ROWS
 
     return (
       <Box flexDirection="column" height={e.viewport?.rows} paddingX={1}>
+        {showBird && (
+          <Box flexDirection="column">
+            {bird.map(row => (
+              <Text color={THEME.accent}>{row}</Text>
+            ))}
+          </Box>
+        )}
         {items.length === 0 && <Text color={THEME.dim}>Ask anything. Enter sends to Haiku, main session untouched.</Text>}
         {items.slice(-room).map(it => (
           <Box flexDirection="column">
