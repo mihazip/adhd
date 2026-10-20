@@ -28,6 +28,23 @@ Restart Claude Code. Part of the [hyperfocus](../../README.md) collection.
 - Press Enter while answers still run: the prompt is held and sent by itself
   once the last answer lands.
 
+## Your own delimiters
+
+Pick any opening and closing string (the same one twice is fine): `;;;`,
+`>>>` ... `<<<`, `[[` ... `]]`. Each is 2+ characters with no letters or spaces.
+
+```
+/tangent delims ;;;          same string both sides
+/tangent delims >>> <<<      different open and close
+/tangent delims reset        back to \\\ and ///
+```
+
+Plain `/tangent` shows the current delimiters. Once you set your own, the
+defaults (`\\\` and `///`) stop working. They are kept in the plugin's store
+(`$.store`, a file in your Claude Code config folder), so they survive restarts
+and `claude plugin update`. You can also set them in the plugin's options
+(`open` and `close`, kept in settings.json); the command wins when both are set.
+
 ## Model and level
 
 A short code picks the model and effort for one question. Put it right after the

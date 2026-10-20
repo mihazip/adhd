@@ -3,8 +3,12 @@ import type { EngineInterface, ModelEffort, Register } from 'claude-code'
 
 import type { Job } from '../types'
 
-// \\\ question \\\ is the safe form; /// question /// works too.
-const MARKS = ['\\\\\\', '///']
+// \\\ question \\\ is the safe form; /// question /// works too. Users can pick their own.
+export type Delims = [open: string, close: string][]
+export const DEFAULT_DELIMS: Delims = [
+  ['\\\\\\', '\\\\\\'],
+  ['///', '///'],
+]
 const MODELS: Record<string, string> = { h: 'haiku', s: 'sonnet', o: 'opus', f: 'fable' }
 const LEVELS: Record<string, ModelEffort> = { l: 'low', m: 'medium', h: 'high', x: 'xhigh', xx: 'max' }
 const CODE = /^([hsof])(xx|[lmhx])?$/
@@ -29,6 +33,7 @@ const nextId = atom({ plugin: 'tangent', key: 'nextId' } as const, 1)
 const jobs = atom({ plugin: 'tangent', key: 'jobs' } as const, {})
 const preset = atom({ plugin: 'tangent', key: 'preset' } as const, DEFAULT)
 const held = atom({ plugin: 'tangent', key: 'held' } as const, '')
+const delims = atom({ plugin: 'tangent', key: 'delims' } as const, DEFAULT_DELIMS)
 
 export function parseCode(code: string): { model: string; effort: ModelEffort } | undefined {
   const m = CODE.exec(code)
@@ -42,20 +47,48 @@ export function tag(id: number, q: string): string {
   return `⟦${id} ${short}⟧`
 }
 
-// Finds a closed \\\query\\\code just before `end` (where the space was typed).
+export function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\\/-]/g, '\\$&')
+}
+
+// A delimiter is 2+ characters with no letters and no whitespace.
+export function checkDelim(d: string): boolean {
+  return d.length >= 2 && !/[\p{L}\s]/u.test(d)
+}
+
+export function parseDelims(raw: unknown): Delims | undefined {
+  if (!Array.isArray(raw) || raw.length !== 2) return undefined
+  const [open, close] = raw
+  if (typeof open !== 'string' || typeof close !== 'string') return undefined
+  return checkDelim(open) && checkDelim(close) ? [[open, close]] : undefined
+}
+
+// Finds a closed <open>query<close>code just before `end` (where the space was typed).
 export function findQuery(
   text: string,
   end: number,
+  pairs: Delims = DEFAULT_DELIMS,
 ): { start: number; query: string; code: string } | undefined {
   const head = text.slice(0, end)
-  const tail = /(\\{3}|\/{3})([a-z]{0,3})$/.exec(head)
-  const mark = tail?.[1] ?? ''
-  if (!tail || !MARKS.includes(mark)) return undefined
-  const close = tail.index
+  for (const [mark, shut] of pairs) {
+    const tail = new RegExp(`${escapeRegex(shut)}([a-z]{0,3})$`).exec(head)
+    if (!tail) continue
+    const found = between(head, mark, tail.index, tail[1] ?? '')
+    if (found) return found
+  }
+  return undefined
+}
+
+function between(
+  head: string,
+  mark: string,
+  close: number,
+  tailCode: string,
+): { start: number; query: string; code: string } | undefined {
   const open = head.lastIndexOf(mark, close - 1)
   if (open < 0 || open + mark.length > close) return undefined
   let query = head.slice(open + mark.length, close).trim()
-  let code = tail[2] ?? ''
+  let code = tailCode
   // The code may also lead the query: \\\sh question\\\
   const lead = /^([a-z]{1,3})\s+/.exec(query)
   if (!code && lead?.[1] && parseCode(lead[1])) {
@@ -152,11 +185,38 @@ async function start($: EngineInterface, text: string, found: { start: number; q
   return job.tag
 }
 
+function showDelims(pairs: Delims): string {
+  return pairs.map(([o, c]) => `${o} question ${c}`).join('  or  ')
+}
+
+async function setDelims($: EngineInterface, args: string): Promise<{ text: string }> {
+  const [first, second, ...extra] = args.trim().split(/\s+/).filter(Boolean)
+  if (first === 'reset' && !second) {
+    await $.store.delete('delims')
+    await update($, delims, () => DEFAULT_DELIMS)
+    return { text: `tangent delimiters reset: ${showDelims(DEFAULT_DELIMS)}` }
+  }
+  const pair = first && !extra.length ? parseDelims([first, second ?? first]) : undefined
+  if (!pair) {
+    return {
+      text: 'Usage: /tangent delims <open> [close] or /tangent delims reset. Each is 2+ characters, no letters or spaces, e.g. ;;; or >>> <<<.',
+    }
+  }
+  await update($, delims, () => pair)
+  await $.store.set('delims', pair[0])
+  return { text: `tangent delimiters are now ${showDelims(pair)}` }
+}
+
 async function setPreset($: EngineInterface, args: string): Promise<{ text: string }> {
   const code = args.trim().toLowerCase()
+  if (/^delims(\s|$)/.test(code)) return setDelims($, args.trim().slice('delims'.length))
   if (!code) {
     const p = parseCode(await read($, preset))!
-    return { text: `tangent default: ${p.model} ${p.effort}. Set with /tangent <code>, e.g. /tangent sm.` }
+    return {
+      text:
+        `tangent default: ${p.model} ${p.effort}. Set with /tangent <code>, e.g. /tangent sm.\n` +
+        `Delimiters: ${showDelims(await read($, delims))}. Change with /tangent delims <open> [close] or /tangent delims reset.`,
+    }
   }
   const p = parseCode(code)
   if (!p) return { text: 'Code is a model letter (h s o f) plus a level (l m h x, or xx for max), e.g. hm, sh, fxx.' }
@@ -193,10 +253,16 @@ async function sendHeld($: EngineInterface): Promise<void> {
   await $.prompt.submit({ text: r.text, asUser: true })
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const saved = await $.store.get('preset')
     if (typeof saved === 'string' && parseCode(saved)) await update($, preset, () => saved)
+    // /tangent delims (store) beats the plugin options; both fall back to the defaults.
+    const opened = options?.open
+    const closed = options?.close
+    const fromOptions = typeof opened === 'string' && opened ? parseDelims([opened, closed || opened]) : undefined
+    const chosen = parseDelims(await $.store.get('delims')) ?? fromOptions
+    if (chosen) await update($, delims, () => chosen)
     await $.command.register({
       name: 'tangent',
       description: 'Show or set the default model+level for \\\\\\ inline questions \\\\\\ (e.g. /tangent hm)',
@@ -210,7 +276,7 @@ export const register: Register = on => {
     const r = await next(e)
     if (e.inputText !== ' ') return r
     const end = r.cursor - 1
-    const found = findQuery(r.text, end)
+    const found = findQuery(r.text, end, await read($, delims))
     if (!found) return r
     const label = await start($, r.text, found, end + 1)
     const text = r.text.slice(0, found.start) + label + ' ' + r.text.slice(end + 1)

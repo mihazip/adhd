@@ -1,6 +1,6 @@
 {
   "name": "tangent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Type a question between triple stripes mid-sentence: a space after the closing stripes asks Haiku in the background and writes the answer back into your draft.",
   "author": {
     "name": "mihazip",
@@ -13,7 +13,21 @@
     "haiku",
     "side-question"
   ],
-  "types": "./types/index.d.ts",
+  "userConfig": {
+    "open": {
+      "type": "string",
+      "title": "Opening delimiter",
+      "description": "Custom opening delimiter, 2+ characters, no letters or spaces (e.g. ;;; or [[). Empty keeps the defaults (three backslashes or three slashes). /tangent delims overrides it.",
+      "required": false
+    },
+    "close": {
+      "type": "string",
+      "title": "Closing delimiter",
+      "description": "Custom closing delimiter. Empty means the same as the opening one.",
+      "required": false
+    }
+  },
+  "types":"./types/index.d.ts",
   "homepage": "https://github.com/mihazip/hyperfocus",
   "repository": "https://github.com/mihazip/hyperfocus"
 }

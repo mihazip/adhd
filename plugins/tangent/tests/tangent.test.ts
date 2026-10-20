@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { SYSTEM, buildPrompt, findQuery, parseCode, tag } from '../hooks/register'
+import { SYSTEM, buildPrompt, findQuery, parseCode, parseDelims, tag } from '../hooks/register'
 
 const B = '\\'.repeat(3)
 
@@ -43,6 +43,51 @@ test('prompt asks for an answer, not a continuation', () => {
   expect(p).toContain('answer')
   expect(SYSTEM).toContain('ANSWER')
   expect(SYSTEM).toContain('prefer answering')
+})
+
+test('custom delimiters, same or paired, with regex specials', () => {
+  const same = 'a ;;;why is it so;;; '
+  expect(findQuery(same, same.length - 1, [[';;;', ';;;']])).toEqual({ start: 2, query: 'why is it so', code: '' })
+  const pair = 'a [[what is 2+2]]h '
+  expect(findQuery(pair, pair.length - 1, [['[[', ']]']])).toEqual({ start: 2, query: 'what is 2+2', code: 'h' })
+  const arrows = 'x >>>q<<< '
+  expect(findQuery(arrows, arrows.length - 1, [['>>>', '<<<']])?.query).toBe('q')
+  // defaults no longer apply once custom delimiters are set
+  const old = `${B}q${B} `
+  expect(findQuery(old, old.length - 1, [[';;;', ';;;']])).toBeUndefined()
+  expect(findQuery('a .*.q.*. ', 9, [['.*.', '.*.']])?.query).toBe('q')
+})
+
+test('delimiter validation', () => {
+  expect(parseDelims([';;;', ';;;'])).toEqual([[';;;', ';;;']])
+  expect(parseDelims(['>>>', '<<<'])).toEqual([['>>>', '<<<']])
+  expect(parseDelims([';', ';'])).toBeUndefined()
+  expect(parseDelims(['ab;', 'ab;'])).toBeUndefined()
+  expect(parseDelims([';; ', ';;;'])).toBeUndefined()
+  expect(parseDelims(['   ', '   '])).toBeUndefined()
+  expect(parseDelims('nope')).toBeUndefined()
+})
+
+test('/tangent delims sets, shows and resets', async ($, on) => {
+  const run = async (args: string) => (await $.command.run({ command: 'tangent', args } as never)).text
+  const saved = new Map<string, unknown>()
+  on('store.set', (_$, e) => {
+    saved.set(e.key, e.value)
+    return { value: undefined }
+  })
+  on('store.get', (_$, e) => ({ value: saved.get(e.key) }))
+  on('store.delete', (_$, e) => {
+    saved.delete(e.key)
+    return { value: undefined }
+  })
+  expect(await run('delims ;;;')).toContain('now ;;; question ;;;')
+  expect(saved.get('delims')).toEqual([';;;', ';;;'])
+  expect(await run('delims >>> <<<')).toContain('>>> question <<<')
+  expect(await run('')).toContain('>>> question <<<')
+  expect(await run('delims a')).toContain('Usage')
+  expect(await run('delims reset')).toContain('reset')
+  expect(saved.has('delims')).toBe(false)
+  expect(await run('')).toContain('/// question ///')
 })
 
 test('tag is short and numbered', () => {

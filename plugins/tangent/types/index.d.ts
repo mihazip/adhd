@@ -17,6 +17,7 @@ declare module 'claude-code' {
       jobs: Record<string, Job>
       preset: string
       held: string
+      delims: [open: string, close: string][]
     }
   }
 }
