@@ -13,13 +13,17 @@ const DEFAULT = 'hh'
 const CONTEXT_CHARS = 20000
 const MAX_TOKENS = 3000
 
-const SYSTEM =
+export const SYSTEM =
   'You fill in one spot inside a draft the user is typing. ' +
-  'You get the draft up to the spot, an instruction or question for that spot, and the draft after it. ' +
-  'Reply with only the text that goes in that spot, written so the draft reads on naturally from where it stops: ' +
-  'same language, voice and register, matching case and punctuation. ' +
-  'Answer the question with the actual facts, compactly: one to three sentences unless the instruction asks for more. ' +
-  'No preamble, no quotes around it, no markdown, no notes to the user.'
+  'You get the draft before the spot, the spot itself (a question or an instruction), and the draft after it. ' +
+  'The draft around the spot is context only: never continue, finish or rephrase it, and never repeat the spot. ' +
+  'If the spot is a question or a request for information, your reply is the ANSWER: the actual facts, ' +
+  'compact, one to three sentences unless it asks for more. ' +
+  'Never answer by completing or restating the question, even when the draft around it is itself a question. ' +
+  'If the spot is an instruction to write something (for example "a friendly closing line"), write that text ' +
+  'so it flows into the draft: same language, voice and register, matching case and punctuation. ' +
+  'If it could be either, prefer answering. ' +
+  'Reply with only the text for the spot: no preamble, no quotes around it, no markdown, no notes to the user.'
 
 const nextId = atom({ plugin: 'tangent', key: 'nextId' } as const, 1)
 const jobs = atom({ plugin: 'tangent', key: 'jobs' } as const, {})
@@ -62,6 +66,17 @@ export function findQuery(
   return { start: open, query, code }
 }
 
+export function buildPrompt(job: Pick<Job, 'before' | 'query' | 'after'>): string {
+  return (
+    `<draft_before>\n${job.before}\n</draft_before>\n` +
+    `<spot>\n${job.query}\n</spot>\n` +
+    `<draft_after>\n${job.after}\n</draft_after>\n` +
+    'The draft is context only. If the spot asks a question or for information, reply with the answer, ' +
+    'not a continuation or rephrasing of the question. If it asks you to write text, write it so it fits the draft. ' +
+    'Reply with only the text for the spot.'
+  )
+}
+
 async function run($: EngineInterface, id: number): Promise<void> {
   const job = (await read($, jobs))[String(id)]
   if (!job) return
@@ -69,11 +84,7 @@ async function run($: EngineInterface, id: number): Promise<void> {
   const r = await $.model.complete({
     model: job.model,
     system: SYSTEM,
-    prompt:
-      `<draft_before>\n${job.before}\n</draft_before>\n` +
-      `<spot>\n${job.query}\n</spot>\n` +
-      `<draft_after>\n${job.after}\n</draft_after>\n` +
-      'Write the text for the spot.',
+    prompt: buildPrompt(job),
     maxTokens: MAX_TOKENS,
     effort: job.effort,
     timeoutMs: 90000,

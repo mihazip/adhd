@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { findQuery, parseCode, tag } from '../hooks/register'
+import { SYSTEM, buildPrompt, findQuery, parseCode, tag } from '../hooks/register'
 
 const B = '\\'.repeat(3)
 
@@ -34,6 +34,15 @@ test('ignores an opener alone, mixed marks, URLs and bad codes', () => {
   for (const text of [`start ${B}hm `, `${B}q/// `, 'see https://x.com/a ', `${B}q${B}zz `]) {
     expect(findQuery(text, text.length - 1)).toBeUndefined()
   }
+})
+
+test('prompt asks for an answer, not a continuation', () => {
+  const p = buildPrompt({ before: 'how does it work, ', query: 'how many tokens?', after: ' thanks' })
+  expect(p).toContain('<spot>\nhow many tokens?\n</spot>')
+  expect(p).toContain('<draft_before>\nhow does it work, \n</draft_before>')
+  expect(p).toContain('answer')
+  expect(SYSTEM).toContain('ANSWER')
+  expect(SYSTEM).toContain('prefer answering')
 })
 
 test('tag is short and numbered', () => {
