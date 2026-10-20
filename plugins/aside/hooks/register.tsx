@@ -159,6 +159,7 @@ export const register: Register = on => {
         ))}
         {busy && <Text color={THEME.busy}>Haiku is thinking...</Text>}
         {note !== '' && <Text color={THEME.accent}>{note}</Text>}
+        <Text> </Text>
         <Input
           key="q"
           placeholder="question"
