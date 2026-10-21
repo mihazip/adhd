@@ -66,6 +66,8 @@ const model = atom({ plugin: 'aside', key: 'model' } as const, DEFAULT_MODEL)
 const notice = atom({ plugin: 'aside', key: 'notice' } as const, '')
 // -1 = resting, otherwise an index into FLUTTER; a timer drives it while the bird flutters.
 const wing = atom({ plugin: 'aside', key: 'wing' } as const, -1)
+// The unsent text in the input, so it survives closing and reopening the pane.
+const draft = atom({ plugin: 'aside', key: 'draft' } as const, '')
 const isMore = atom({ plugin: 'aside', key: 'isMore' } as const, false)
 
 // "more" and "less" share one key, so the focus ring stays where the person pressed.
@@ -92,7 +94,7 @@ async function isPaneOpen($: EngineInterface): Promise<boolean> {
 // Opening an id that is already open only retitles it.
 async function openPane($: EngineInterface, focus: boolean): Promise<void> {
   const name = await read($, model)
-  await $.ui.open({ id: PANE, title: `aside (${name})`, focus, closeOnEscape: true, rows: PANE_ROWS })
+  await $.ui.open({ id: PANE, title: `aside (${name})`, focus, rows: PANE_ROWS })
 }
 
 // Never stacks a second pane.
@@ -210,6 +212,7 @@ export const register: Register = on => {
     const name = await read($, model)
     const note = await read($, notice)
     const more = await read($, isMore)
+    const typed = await read($, draft)
     const room = Math.max(1, Math.floor(((e.viewport?.rows ?? 24) - 8) / 3))
     const lastItem = items[items.length - 1]
     const w = await read($, wing)
@@ -241,7 +244,12 @@ export const register: Register = on => {
           placeholder="question"
           submitLabel="ask"
           autoFocus
+          value={typed}
+          onInput={(value: string) => {
+            void update($, draft, () => value)
+          }}
           onSubmit={(value: string) => {
+            void update($, draft, () => '')
             void ask($, value)
           }}
         />
