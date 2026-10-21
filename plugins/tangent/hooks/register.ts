@@ -37,7 +37,10 @@ const nextId = atom({ plugin: 'tangent', key: 'nextId' } as const, 1)
 const jobs = atom({ plugin: 'tangent', key: 'jobs' } as const, {})
 const preset = atom({ plugin: 'tangent', key: 'preset' } as const, DEFAULT)
 const held = atom({ plugin: 'tangent', key: 'held' } as const, '')
-const delims = atom({ plugin: 'tangent', key: 'delims' } as const, DEFAULT_DELIMS)
+// Pairs the user added (store key 'pairs'), built-in opens switched off (store key 'off'), and the options pair.
+const custom = atom({ plugin: 'tangent', key: 'custom' } as const, [])
+const off = atom({ plugin: 'tangent', key: 'off' } as const, [])
+const extra = atom({ plugin: 'tangent', key: 'extra' } as const, [])
 
 export function parseCode(code: string): { model: string; effort: ModelEffort } | undefined {
   const m = CODE.exec(code)
@@ -209,32 +212,112 @@ async function start($: EngineInterface, text: string, found: { start: number; q
   return job.tag
 }
 
-// The defaults always work; a custom pair is added after them.
-export function withCustom(custom: Delims | undefined): Delims {
-  return custom ? [...DEFAULT_DELIMS, ...custom] : DEFAULT_DELIMS
+// Built-ins that are not switched off, then the user's pairs, then the options pair.
+export function activePairs(mine: Delims = [], disabled: string[] = [], fromOptions: Delims = []): Delims {
+  const all = [...DEFAULT_DELIMS.filter(([o]) => !disabled.includes(o)), ...mine, ...fromOptions]
+  return all.filter(([o], i) => all.findIndex(([p]) => p === o) === i)
+}
+
+async function active($: EngineInterface): Promise<Delims> {
+  return activePairs(await read($, custom), await read($, off), await read($, extra))
 }
 
 function showDelims(pairs: Delims): string {
   return pairs.map(([o, c]) => `${o} question ${c}`).join('  or  ')
 }
 
-async function setDelims($: EngineInterface, args: string): Promise<{ text: string }> {
-  const [first, second, ...extra] = args.trim().split(/\s+/).filter(Boolean)
-  if (first === 'reset' && !second) {
-    await $.store.delete('delims')
-    await update($, delims, () => DEFAULT_DELIMS)
-    return { text: `tangent custom delimiters removed. Active: ${showDelims(DEFAULT_DELIMS)}` }
+function isBuiltin(open: string): boolean {
+  return DEFAULT_DELIMS.some(([o]) => o === open)
+}
+
+async function saveCustom($: EngineInterface, pairs: Delims): Promise<void> {
+  await update($, custom, () => pairs)
+  if (pairs.length) await $.store.set('pairs', pairs)
+  else await $.store.delete('pairs')
+}
+
+async function saveOff($: EngineInterface, opens: string[]): Promise<void> {
+  await update($, off, () => opens)
+  if (opens.length) await $.store.set('off', opens)
+  else await $.store.delete('off')
+}
+
+// "open close" (close optional) to a pair: adds it, or says why not.
+export async function addPair($: EngineInterface, open: string, close = open): Promise<string> {
+  const pair = parseDelims([open, close])
+  if (!pair) return 'Each delimiter is 2+ characters, no letters, digits or spaces, e.g. ;;; or >>> <<<.'
+  if (isBuiltin(open)) return `${open} is built in: switch it on instead.`
+  const mine = (await read($, custom)).filter(([o]) => o !== open)
+  await saveCustom($, [...mine, ...pair])
+  return `Added ${open} question ${close}.`
+}
+
+export async function removePair($: EngineInterface, open: string): Promise<string> {
+  const mine = await read($, custom)
+  if (!mine.some(([o]) => o === open)) return `No custom pair opens with ${open}.`
+  await saveCustom($, mine.filter(([o]) => o !== open))
+  return `Removed ${open}.`
+}
+
+// Switches a built-in on or off; at least one pair must stay enabled.
+export async function toggleBuiltin($: EngineInterface, open: string, on?: boolean): Promise<string> {
+  if (!isBuiltin(open)) return `${open} is not a built-in pair.`
+  const disabled = await read($, off)
+  const turnOn = on ?? disabled.includes(open)
+  if (!turnOn) {
+    const rest = activePairs(await read($, custom), [...disabled, open], await read($, extra))
+    if (!rest.length) return 'At least one pair must stay on.'
   }
-  const pair = first && !extra.length ? parseDelims([first, second ?? first]) : undefined
-  if (!pair) {
+  await saveOff($, turnOn ? disabled.filter(o => o !== open) : [...new Set([...disabled, open])])
+  return `${open} is ${turnOn ? 'on' : 'off'}.`
+}
+
+async function resetDelims($: EngineInterface): Promise<string> {
+  await saveCustom($, [])
+  await saveOff($, [])
+  return 'Custom pairs removed, built-ins all on.'
+}
+
+async function setDelims($: EngineInterface, args: string): Promise<{ text: string }> {
+  const [verb, first, second, ...rest] = args.trim().split(/\s+/).filter(Boolean)
+  let said = ''
+  if (verb === 'reset' && !first) said = await resetDelims($)
+  else if (verb === 'add' && first && !rest.length) said = await addPair($, first, second)
+  else if (verb === 'remove' && first && !second) said = await removePair($, first)
+  else if ((verb === 'on' || verb === 'off') && first && !second) said = await toggleBuiltin($, first, verb === 'on')
+  else {
     return {
-      text: 'Usage: /tangent delims <open> [close] or /tangent delims reset. Each is 2+ characters, no letters or spaces, e.g. ;;; or >>> <<<.',
+      text:
+        `Delimiters: ${showDelims(await active($))}\n` +
+        'Usage: /tangent delims add <open> [close] | remove <open> | on <builtin> | off <builtin> | reset. ' +
+        'Each is 2+ characters, no letters or spaces, e.g. ;;; or >>> <<<.',
     }
   }
-  const all = withCustom(pair)
-  await update($, delims, () => all)
-  await $.store.set('delims', pair[0])
-  return { text: `tangent delimiters are now ${showDelims(all)}` }
+  return { text: `tangent: ${said} Active: ${showDelims(await active($))}` }
+}
+
+// Reads the saved pairs and switches, moves an old single 'delims' pair into 'pairs' once,
+// and takes the plugin options as one more pair.
+async function loadDelims($: EngineInterface, opened: unknown, closed: unknown): Promise<void> {
+  const keep = (raw: unknown): Delims =>
+    Array.isArray(raw) ? raw.flatMap(p => parseDelims(p) ?? []).filter(([o]) => !isBuiltin(o)) : []
+  let mine = keep(await $.store.get('pairs'))
+  const rawOld = await $.store.get('delims')
+  if (rawOld !== undefined) {
+    const old = parseDelims(rawOld)
+    if (old && !isBuiltin(old[0][0]) && !mine.some(([o]) => o === old[0][0])) mine = [...mine, ...old]
+    await saveCustom($, mine)
+    await $.store.delete('delims')
+  } else {
+    await update($, custom, () => mine)
+  }
+  const saved = await $.store.get('off')
+  const disabled = Array.isArray(saved) ? saved.filter((o): o is string => typeof o === 'string' && isBuiltin(o)) : []
+  await update($, off, () => disabled)
+  const fromOptions = typeof opened === 'string' && opened ? parseDelims([opened, closed || opened]) : undefined
+  await update($, extra, () => (fromOptions && !isBuiltin(fromOptions[0][0]) ? fromOptions : []))
+  // never leave nothing enabled
+  if (!(await active($)).length) await saveOff($, [])
 }
 
 async function setPreset($: EngineInterface, args: string): Promise<{ text: string }> {
@@ -245,7 +328,7 @@ async function setPreset($: EngineInterface, args: string): Promise<{ text: stri
     return {
       text:
         `tangent default: ${p.model} ${p.effort}. Set with /tangent <code>, e.g. /tangent sm.\n` +
-        `Delimiters: ${showDelims(await read($, delims))}. Change with /tangent delims <open> [close] or /tangent delims reset (removes only the custom pair).`,
+        `Delimiters: ${showDelims(await active($))}. Change with /tangent delims add <open> [close], remove <open>, on/off <builtin> or reset.`,
     }
   }
   const p = parseCode(code)
@@ -287,12 +370,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const saved = await $.store.get('preset')
     if (typeof saved === 'string' && parseCode(saved)) await update($, preset, () => saved)
-    // One extra pair on top of the defaults: /tangent delims (store) beats the plugin options.
-    const opened = options?.open
-    const closed = options?.close
-    const fromOptions = typeof opened === 'string' && opened ? parseDelims([opened, closed || opened]) : undefined
-    const chosen = parseDelims(await $.store.get('delims')) ?? fromOptions
-    if (chosen) await update($, delims, () => withCustom(chosen))
+    await loadDelims($, options?.open, options?.close)
     await $.command.register({
       name: 'tangent',
       description: 'Show or set the default model+level for || inline questions || (e.g. /tangent hm)',
@@ -306,7 +384,7 @@ export const register: Register = (on, options) => {
     const r = await next(e)
     if (e.inputText !== ' ') return r
     const end = r.cursor - 1
-    const found = findQuery(r.text, end, await read($, delims))
+    const found = findQuery(r.text, end, await active($))
     if (!found) return r
     const label = await start($, r.text, found, end + 1)
     const text = r.text.slice(0, found.start) + label + ' ' + r.text.slice(end + 1)

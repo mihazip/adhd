@@ -33,20 +33,24 @@ Restart Claude Code. Part of the [hyperfocus](../../README.md) collection.
 
 ## Your own delimiters
 
-Add one extra opening and closing string (the same one twice is fine): `;;;`,
-`>>>` ... `<<<`, `[[` ... `]]`. Each is 2+ characters with no letters or spaces.
-`\\\` and `///` keep working next to it.
+Add as many opening and closing pairs as you like (the same string twice is
+fine): `;;;`, `>>>` ... `<<<`, `[[` ... `]]`. Each is 2+ characters with no
+letters, digits or spaces, and needs a query of 2+ words like `||`. The built-in
+`||`, `\\\` and `///` can each be switched off, but at least one pair stays on.
 
 ```
-/tangent delims ;;;          same string both sides
-/tangent delims >>> <<<      different open and close
-/tangent delims reset        removes the custom pair, defaults stay
+/tangent delims add ;;;          same string both sides
+/tangent delims add >>> <<<      different open and close
+/tangent delims remove ;;;       drops a custom pair
+/tangent delims off ||           switch a built-in off (on to switch it back)
+/tangent delims reset            custom pairs cleared, built-ins all on
 ```
 
-Plain `/tangent` shows the active delimiters. The custom pair is kept in the plugin's store
-(`$.store`, a file in your Claude Code config folder), so they survive restarts
-and `claude plugin update`. You can also set them in the plugin's options
-(`open` and `close`, kept in settings.json); the command wins when both are set.
+Plain `/tangent` lists the active delimiters. Pairs and switches are kept in the
+plugin's store (`$.store`, a file in your Claude Code config folder), so they
+survive restarts and `claude plugin update`. The plugin's options (`open` and
+`close`, kept in settings.json) add one more pair next to them. An older single
+pair saved by 0.2 is moved into the list on first start.
 
 ## Model and level
 
