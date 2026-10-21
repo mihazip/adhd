@@ -41,6 +41,8 @@ const held = atom({ plugin: 'tangent', key: 'held' } as const, '')
 const custom = atom({ plugin: 'tangent', key: 'custom' } as const, [])
 const off = atom({ plugin: 'tangent', key: 'off' } as const, [])
 const extra = atom({ plugin: 'tangent', key: 'extra' } as const, [])
+const notice = atom({ plugin: 'tangent', key: 'notice' } as const, '')
+const PANE = 'tangent-delims'
 
 export function parseCode(code: string): { model: string; effort: ModelEffort } | undefined {
   const m = CODE.exec(code)
@@ -278,9 +280,34 @@ async function resetDelims($: EngineInterface): Promise<string> {
   return 'Custom pairs removed, built-ins all on.'
 }
 
+async function openPicker($: EngineInterface): Promise<void> {
+  await update($, notice, () => '')
+  await $.ui.open({ id: PANE, title: 'tangent delimiters', focus: true, closeOnEscape: true, rows: 14 })
+}
+
+// Runs a picker action and shows what it said in the pane's notice line.
+async function say($: EngineInterface, doing: Promise<string>): Promise<void> {
+  const said = await doing
+  await update($, notice, () => said)
+}
+
+// The Input holds "open close" (close optional).
+async function addFromInput($: EngineInterface, value: string): Promise<void> {
+  const [open, close, ...rest] = value.trim().split(/\s+/).filter(Boolean)
+  if (!open || rest.length) {
+    await update($, notice, () => 'Type an opening and optional closing delimiter, e.g. ;;; or >>> <<<.')
+    return
+  }
+  await say($, addPair($, open, close))
+}
+
 async function setDelims($: EngineInterface, args: string): Promise<{ text: string }> {
   const [verb, first, second, ...rest] = args.trim().split(/\s+/).filter(Boolean)
   let said = ''
+  if (!verb) {
+    await openPicker($)
+    return { text: 'tangent delimiters pane opened.' }
+  }
   if (verb === 'reset' && !first) said = await resetDelims($)
   else if (verb === 'add' && first && !rest.length) said = await addPair($, first, second)
   else if (verb === 'remove' && first && !second) said = await removePair($, first)
@@ -289,7 +316,7 @@ async function setDelims($: EngineInterface, args: string): Promise<{ text: stri
     return {
       text:
         `Delimiters: ${showDelims(await active($))}\n` +
-        'Usage: /tangent delims add <open> [close] | remove <open> | on <builtin> | off <builtin> | reset. ' +
+        'Usage: /tangent delims (picker) | add <open> [close] | remove <open> | on <builtin> | off <builtin> | reset. ' +
         'Each is 2+ characters, no letters or spaces, e.g. ;;; or >>> <<<.',
     }
   }
@@ -328,7 +355,7 @@ async function setPreset($: EngineInterface, args: string): Promise<{ text: stri
     return {
       text:
         `tangent default: ${p.model} ${p.effort}. Set with /tangent <code>, e.g. /tangent sm.\n` +
-        `Delimiters: ${showDelims(await active($))}. Change with /tangent delims add <open> [close], remove <open>, on/off <builtin> or reset.`,
+        `Delimiters: ${showDelims(await active($))}. Edit them with /tangent delims (opens a picker), or add <open> [close], remove <open>, on/off <builtin>, reset.`,
     }
   }
   const p = parseCode(code)
@@ -379,6 +406,65 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: 'tangent' }, async ($, e) => setPreset($, e.args))
+
+  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
+    const { Box, Text, Button, Input } = $.ui.resolve(e)
+    const disabled = await read($, off)
+    const mine = await read($, custom)
+    const fromOptions = await read($, extra)
+    const note = await read($, notice)
+
+    return (
+      <Box flexDirection="column" paddingX={1}>
+        <Text dimColor>Type || question || (a space after the closing mark asks). Tab or arrows move, Enter presses.</Text>
+        {DEFAULT_DELIMS.map(([o, c]) => (
+          <Box flexDirection="row">
+            <Text>{`${o} question ${c}  `}</Text>
+            <Button
+              key={`toggle:${o}`}
+              label={disabled.includes(o) ? 'off' : 'on'}
+              onPress={() => {
+                void say($, toggleBuiltin($, o))
+              }}
+            />
+          </Box>
+        ))}
+        {mine.map(([o, c]) => (
+          <Box flexDirection="row">
+            <Text>{`${o} question ${c}  `}</Text>
+            <Button
+              key={`remove:${o}`}
+              label="remove"
+              onPress={() => {
+                void say($, removePair($, o))
+              }}
+            />
+          </Box>
+        ))}
+        {fromOptions.map(([o, c]) => (
+          <Text dimColor>{`${o} question ${c}  (from plugin options)`}</Text>
+        ))}
+        <Input
+          key="add"
+          placeholder="add a pair: open [close], e.g. ;;; or >>> <<<"
+          submitLabel="add"
+          autoFocus
+          value=""
+          onSubmit={(value: string) => {
+            void addFromInput($, value)
+          }}
+        />
+        {note !== '' && <Text color="yellow">{note}</Text>}
+        <Button
+          key="done"
+          label="done"
+          onPress={() => {
+            void $.ui.close({ id: PANE })
+          }}
+        />
+      </Box>
+    )
+  })
 
   on('prompt.edit', async ($, e, next) => {
     const r = await next(e)

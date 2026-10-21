@@ -20,6 +20,7 @@ declare module 'claude-code' {
       custom: [open: string, close: string][]
       off: string[]
       extra: [open: string, close: string][]
+      notice: string
     }
   }
 }

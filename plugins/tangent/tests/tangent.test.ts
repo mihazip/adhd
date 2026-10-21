@@ -185,6 +185,56 @@ test('session start moves the old single pair into the list once', async ($, on)
   ])
 })
 
+const PICKER = {
+  plugin: 'tangent',
+  component: 'Pane',
+  requestId: 'tangent-delims',
+  props: {
+    title: 'tangent delimiters',
+    isFocused: true,
+    bodyColumns: 60,
+    placement: 'inline',
+    scroll: { offset: 0, bodyRows: 14 },
+    view: {},
+  },
+} as const
+
+test('/tangent delims with no args opens the picker pane', async ($, on) => {
+  fakeStore($, on)
+  const opened: unknown[] = []
+  on('ui.open', (_$, e) => {
+    opened.push(e)
+    return { value: { isPlaced: true } }
+  })
+  const r = await $.command.run({ command: 'tangent', args: 'delims' } as never)
+  expect(r.text).toContain('pane opened')
+  expect(opened[0]).toMatchObject({ id: 'tangent-delims', title: 'tangent delimiters', focus: true, closeOnEscape: true })
+})
+
+test('the picker toggles built-ins, adds and removes pairs, and closes', async ($, on) => {
+  const saved = fakeStore($, on)
+  const closed: unknown[] = []
+  on('ui.close', (_$, e) => {
+    closed.push(e)
+    return { value: undefined }
+  })
+  const ui = await $.ui.mount({ ...PICKER, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: /\|\| question \|\|/ })).toBeDefined()
+
+  await ui.press({ key: 'toggle:||' })
+  expect(saved.get('off')).toEqual(['||'])
+  await ui.input({ key: 'add', text: ';;; ;;;' })
+  expect(saved.get('pairs')).toEqual([[';;;', ';;;']])
+  await ui.input({ key: 'add', text: 'a' })
+  expect((await ui.find({ type: 'Text', text: /2\+ characters/ }))?.text).toContain('2+ characters')
+  await ui.press({ key: 'remove:;;;' })
+  expect(saved.has('pairs')).toBe(false)
+
+  await ui.press({ key: 'done' })
+  expect(closed[0]).toMatchObject({ id: 'tangent-delims' })
+  await ui.unmount()
+})
+
 test('tag is short and numbered', () => {
   expect(tag(3, 'a very long question about many many things')).toBe('⟦3 a very long question ab…⟧')
 })
