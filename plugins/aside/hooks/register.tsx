@@ -136,15 +136,18 @@ export const register: Register = on => {
     return next(e)
   })
 
-  // One dim row above the prompt with a single button; yields to surveys and to an open pane.
+  // The band is one shared slot: keep whatever the tree below draws and add the button at the right end.
+  // Yields entirely to surveys and to an open pane.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || (await isPaneOpen($))) return next(e)
 
+    const below = await next(e)
     const { Box, Button } = $.ui.resolve(e)
 
     return (
-      <Box justifyContent="flex-end">
-        <Button key="open" label="aside" onPress={() => openPane($)} />
+      <Box width={e.props.bodyColumns}>
+        <Box flexGrow={1}>{below}</Box>
+        <Button key="open" label="aside" dimColor plain onPress={() => openPane($)} />
       </Box>
     )
   })
