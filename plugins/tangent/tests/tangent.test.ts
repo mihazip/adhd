@@ -36,6 +36,35 @@ test('ignores an opener alone, mixed marks, URLs and bad codes', () => {
   }
 })
 
+test('|| is the primary delimiter and needs two words', () => {
+  const ok = 'so || what is the capital of France || '
+  expect(findQuery(ok, ok.length - 1)).toEqual({ start: 3, query: 'what is the capital of France', code: '' })
+  const coded = 'so || what is 2+2 ||sm '
+  expect(findQuery(coded, coded.length - 1)?.code).toBe('sm')
+  // logical OR in code must not fire
+  for (const text of ['x || y || ', 'if (a || b || ', 'a ||b|| ']) {
+    expect(findQuery(text, text.length - 1)).toBeUndefined()
+  }
+  // aliases and a one-word query still fire
+  const alias = `${B}capital${B} `
+  expect(findQuery(alias, alias.length - 1)?.query).toBe('capital')
+})
+
+test('no query opens inside an unclosed backtick span or fence', () => {
+  for (const text of [
+    'use `a || what is the capital of France || ',
+    '```js\nlet z = 1 || what is the capital of France || ',
+    'try `x ///what is the capital of France/// ',
+  ]) {
+    expect(findQuery(text, text.length - 1)).toBeUndefined()
+  }
+  // a closed span or fence before the opener is fine
+  const closed = 'use `x` then || what is the capital of France || '
+  expect(findQuery(closed, closed.length - 1)?.query).toBe('what is the capital of France')
+  const fenced = '```\ncode\n```\n|| what is the capital of France || '
+  expect(findQuery(fenced, fenced.length - 1)?.query).toBe('what is the capital of France')
+})
+
 test('prompt asks for an answer, not a continuation', () => {
   const p = buildPrompt({ before: 'how does it work, ', query: 'how many tokens?', after: ' thanks' })
   expect(p).toContain('<spot>\nhow many tokens?\n</spot>')
@@ -50,8 +79,8 @@ test('custom delimiters, same or paired, with regex specials', () => {
   expect(findQuery(same, same.length - 1, [[';;;', ';;;']])).toEqual({ start: 2, query: 'why is it so', code: '' })
   const pair = 'a [[what is 2+2]]h '
   expect(findQuery(pair, pair.length - 1, [['[[', ']]']])).toEqual({ start: 2, query: 'what is 2+2', code: 'h' })
-  const arrows = 'x >>>q<<< '
-  expect(findQuery(arrows, arrows.length - 1, [['>>>', '<<<']])?.query).toBe('q')
+  const arrows = 'x >>>q r<<< '
+  expect(findQuery(arrows, arrows.length - 1, [['>>>', '<<<']])?.query).toBe('q r')
   // defaults still match next to a custom pair
   const old = `${B}q${B} `
   expect(findQuery(old, old.length - 1, withCustom([[';;;', ';;;']]))?.query).toBe('q')
@@ -60,7 +89,7 @@ test('custom delimiters, same or paired, with regex specials', () => {
   expect(findQuery(same, same.length - 1, withCustom([[';;;', ';;;']]))?.query).toBe('why is it so')
   // without defaults in the list, they do not match
   expect(findQuery(old, old.length - 1, [[';;;', ';;;']])).toBeUndefined()
-  expect(findQuery('a .*.q.*. ', 9, [['.*.', '.*.']])?.query).toBe('q')
+  expect(findQuery('a .*.q r.*. ', 11, [['.*.', '.*.']])?.query).toBe('q r')
 })
 
 test('delimiter validation', () => {

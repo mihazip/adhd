@@ -3,12 +3,16 @@ import type { EngineInterface, ModelEffort, Register } from 'claude-code'
 
 import type { Job } from '../types'
 
-// \\\ question \\\ is the safe form; /// question /// works too. Users can pick their own.
+// || question || is the primary form; \\\ question \\\ and /// question /// are aliases. Users can add their own.
 export type Delims = [open: string, close: string][]
 export const DEFAULT_DELIMS: Delims = [
+  ['||', '||'],
   ['\\\\\\', '\\\\\\'],
   ['///', '///'],
 ]
+// The aliases are never typed by accident; every other pair needs a query of 2+ words.
+const ALIASES = new Set(['\\\\\\', '///'])
+const MIN_WORDS = 2
 const MODELS: Record<string, string> = { h: 'haiku', s: 'sonnet', o: 'opus', f: 'fable' }
 const LEVELS: Record<string, ModelEffort> = { l: 'low', m: 'medium', h: 'high', x: 'xhigh', xx: 'max' }
 const CODE = /^([hsof])(xx|[lmhx])?$/
@@ -73,10 +77,26 @@ export function findQuery(
   for (const [mark, shut] of pairs) {
     const tail = new RegExp(`${escapeRegex(shut)}([a-z]{0,3})$`).exec(head)
     if (!tail) continue
-    const found = between(head, mark, tail.index, tail[1] ?? '')
+    const found = between(head, mark, tail.index, tail[1] ?? '', !(ALIASES.has(mark) && mark === shut))
     if (found) return found
   }
   return undefined
+}
+
+// True when `at` sits inside an unclosed ``` fence or `inline` span (spans end at a newline).
+export function inCode(text: string, at: number): boolean {
+  let fence = false
+  let inline = false
+  for (let i = 0; i < at; i++) {
+    if (text.startsWith('```', i)) {
+      fence = !fence
+      inline = false
+      i += 2
+    } else if (fence) continue
+    else if (text[i] === '`') inline = !inline
+    else if (text[i] === '\n') inline = false
+  }
+  return fence || inline
 }
 
 function between(
@@ -84,9 +104,11 @@ function between(
   mark: string,
   close: number,
   tailCode: string,
+  needWords: boolean,
 ): { start: number; query: string; code: string } | undefined {
   const open = head.lastIndexOf(mark, close - 1)
   if (open < 0 || open + mark.length > close) return undefined
+  if (inCode(head, open)) return undefined
   let query = head.slice(open + mark.length, close).trim()
   let code = tailCode
   // The code may also lead the query: \\\sh question\\\
@@ -96,6 +118,8 @@ function between(
     query = query.slice(lead[0].length)
   }
   if (!query || (code && !parseCode(code))) return undefined
+  // `a || b || ` is code, not a question.
+  if (needWords && query.split(/\s+/).length < MIN_WORDS) return undefined
   return { start: open, query, code }
 }
 
@@ -271,7 +295,7 @@ export const register: Register = (on, options) => {
     if (chosen) await update($, delims, () => withCustom(chosen))
     await $.command.register({
       name: 'tangent',
-      description: 'Show or set the default model+level for \\\\\\ inline questions \\\\\\ (e.g. /tangent hm)',
+      description: 'Show or set the default model+level for || inline questions || (e.g. /tangent hm)',
     })
     return next(e)
   })

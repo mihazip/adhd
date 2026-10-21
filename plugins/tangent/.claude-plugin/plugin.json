@@ -1,7 +1,7 @@
 {
   "name": "tangent",
   "version": "0.2.0",
-  "description": "Type a question between triple stripes mid-sentence: a space after the closing stripes asks Haiku in the background and writes the answer back into your draft.",
+  "description": "Type a question between pipes mid-sentence: a space after the closing pipes asks Haiku in the background and writes the answer back into your draft.",
   "author": {
     "name": "mihazip",
     "url": "https://github.com/mihazip"
@@ -17,7 +17,7 @@
     "open": {
       "type": "string",
       "title": "Opening delimiter",
-      "description": "Extra opening delimiter, 2+ characters, no letters or spaces (e.g. ;;; or [[). Added next to the defaults (three backslashes, three slashes), which keep working. /tangent delims overrides it.",
+      "description": "Extra opening delimiter, 2+ characters, no letters or spaces (e.g. ;;; or [[). Added next to the defaults (||, three backslashes, three slashes), which keep working. /tangent delims overrides it.",
       "required": false
     },
     "close": {
