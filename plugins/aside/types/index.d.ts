@@ -7,6 +7,7 @@ declare module 'claude-code' {
       isBusy: boolean
       isAuto: boolean
       effort: string
+      model: string
       notice: string
       wing: number
       isMore: boolean
