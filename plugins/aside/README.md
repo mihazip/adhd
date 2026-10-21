@@ -24,8 +24,8 @@ Restart Claude Code, then run `/aside`. Part of the [hyperfocus](../../README.md
 - Arrow Up/Down and Tab walk between the input and the options; Esc hands the keys back to the prompt, and again closes the pane.
 - **Return synopsis to prompt** (once there is an answer) appends a short note with the last Q and A to your main prompt box.
 - Press **more** under it to unfold the options, **less** (same place) to fold them again:
-  - **Model**: haiku, sonnet, opus or fable (default haiku).
-  - **Effort**: cycles low / medium / high (default medium).
+  - **Model** `‹ haiku ›`: Enter steps through haiku, sonnet, opus, fable and wraps (default haiku).
+  - **Effort** `‹ medium ›`: Enter steps through low / medium / high and wraps (default medium).
   - **Auto-return**: return the synopsis automatically after every answer.
   - **Clear**: wipes the side chat.
 

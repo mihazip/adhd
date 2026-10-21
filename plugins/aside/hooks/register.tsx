@@ -111,7 +111,9 @@ async function loadSettings($: EngineInterface): Promise<void> {
   if (typeof l === 'string' && (LEVELS as readonly string[]).includes(l)) await update($, effort, () => l)
 }
 
-async function pickModel($: EngineInterface, name: string): Promise<void> {
+async function nextModel($: EngineInterface): Promise<void> {
+  const cur = await read($, model)
+  const name = MODELS[(MODELS.indexOf(cur as (typeof MODELS)[number]) + 1) % MODELS.length]
   await update($, model, () => name)
   await $.store.set('model', name)
   if (await isPaneOpen($)) await openPane($, false)
@@ -200,7 +202,7 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Button, Input, Markdown, Select } = $.ui.resolve(e)
+    const { Box, Text, Button, Input, Markdown } = $.ui.resolve(e)
     const items = await read($, log)
     const busy = await read($, isBusy)
     const auto = await read($, isAuto)
@@ -255,18 +257,8 @@ export const register: Register = on => {
             />
           )}
           <Button key="toggle" label={more ? 'less' : 'more'} onPress={() => setMore($, !more)} />
-          {more && (
-            <Select
-              key="model"
-              label="Model: "
-              options={MODELS.map(m => ({ value: m }))}
-              value={name}
-              onSelect={(value: string) => {
-                void pickModel($, value)
-              }}
-            />
-          )}
-          {more && <Button key="effort" label={`Effort: ${lvl}`} onPress={() => nextEffort($)} />}
+          {more && <Button key="model" label={`Model: ‹ ${name} ›`} onPress={() => nextModel($)} />}
+          {more && <Button key="effort" label={`Effort: ‹ ${lvl} ›`} onPress={() => nextEffort($)} />}
           {more && (
             <Button
               key="auto"
