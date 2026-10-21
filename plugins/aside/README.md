@@ -19,7 +19,7 @@ Restart Claude Code, then run `/aside`. Part of the [hyperfocus](../../README.md
 
 - Type a question in the pane and press Enter.
 - Follow-ups ("all of them", "more") continue the previous exchange (last 6 are sent as history).
-- Open it with `/aside`, or press the small **aside** button at the right end of the row above the prompt box. The button sits beside whatever else is drawn there and hides while the pane is open.
+- Open it with `/aside`.
 - A braille hummingbird flutters for a moment when the pane opens. It shows only on the empty start screen and only when the pane has room.
 - Arrow Up/Down and Tab walk between the input and the options; Esc hands the keys back to the prompt, and again closes the pane.
 - **Return synopsis to prompt** (once there is an answer) appends a short note with the last Q and A to your main prompt box.
@@ -43,7 +43,7 @@ Restart Claude Code, then run `/aside`. Part of the [hyperfocus](../../README.md
 hooks/hooks.json                  points at the module
 hooks/register.tsx                command, pane and model calls
 types/index.d.ts                  plugin state types
-tests/aside.test.tsx              band and pane render tests
+tests/aside.test.tsx              pane render test
 ```
 
 ## License

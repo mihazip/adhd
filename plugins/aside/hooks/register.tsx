@@ -95,7 +95,7 @@ async function openPane($: EngineInterface, focus: boolean): Promise<void> {
   await $.ui.open({ id: PANE, title: `aside (${name})`, focus, closeOnEscape: true, rows: PANE_ROWS })
 }
 
-// Shared by /aside and the band button; never stacks a second pane.
+// Never stacks a second pane.
 async function showPane($: EngineInterface): Promise<void> {
   if (await isPaneOpen($)) return
   await openPane($, true)
@@ -191,22 +191,6 @@ export const register: Register = on => {
     })
 
     return next(e)
-  })
-
-  // The band is one shared slot: keep whatever the tree below draws and add the button at the right end.
-  // Yields entirely to surveys and to an open pane.
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey || (await isPaneOpen($))) return next(e)
-
-    const below = await next(e)
-    const { Box, Button } = $.ui.resolve(e)
-
-    return (
-      <Box width={e.props.bodyColumns}>
-        <Box flexGrow={1}>{below}</Box>
-        <Button key="open" label="aside" dimColor plain onPress={() => showPane($)} />
-      </Box>
-    )
   })
 
   on('command.run', { command: 'aside' }, async $ => {
