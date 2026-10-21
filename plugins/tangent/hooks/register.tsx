@@ -420,14 +420,21 @@ export const register: Register = (on, options) => {
     const fg = { color: THEME.fg, backgroundColor: THEME.bg }
 
     return (
-      <Box flexDirection="column" paddingX={1} backgroundColor={THEME.bg}>
+      <Box
+        flexDirection="column"
+        paddingX={1}
+        width={e.props.bodyColumns}
+        minHeight={e.props.scroll.bodyRows}
+        backgroundColor={THEME.bg}
+      >
         <Text color={THEME.dim} backgroundColor={THEME.bg}>
           Type || question || (a space after the closing mark asks). Tab or arrows move, Enter presses.
         </Text>
         {DEFAULT_DELIMS.map(([o, c]) => (
-          <Box flexDirection="row" backgroundColor={THEME.bg}>
+          <Box flexDirection="row" width="100%" backgroundColor={THEME.bg}>
             <Text {...fg}>{`${o} question ${c}  `}</Text>
             <Button
+              plain
               key={`toggle:${o}`}
               onPress={() => {
                 void say($, toggleBuiltin($, o))
@@ -438,9 +445,10 @@ export const register: Register = (on, options) => {
           </Box>
         ))}
         {mine.map(([o, c]) => (
-          <Box flexDirection="row" backgroundColor={THEME.bg}>
+          <Box flexDirection="row" width="100%" backgroundColor={THEME.bg}>
             <Text {...fg}>{`${o} question ${c}  `}</Text>
             <Button
+              plain
               key={`remove:${o}`}
               onPress={() => {
                 void say($, removePair($, o))
@@ -465,6 +473,7 @@ export const register: Register = (on, options) => {
         />
         {note !== '' && <Text color={THEME.error} backgroundColor={THEME.bg}>{note}</Text>}
         <Button
+          plain
           key="done"
           onPress={() => {
             void $.ui.close({ id: PANE })
