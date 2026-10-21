@@ -317,6 +317,9 @@ export const register: Register = on => {
               <Text {...TEXT}>Clear</Text>
             </Button>
           )}
+          <Button plain key="close" label="Close" onPress={() => $.ui.close({ id: PANE })}>
+            <Text {...TEXT}>Close</Text>
+          </Button>
         </Box>
       </Box>
     )
