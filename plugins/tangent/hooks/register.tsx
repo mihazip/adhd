@@ -42,6 +42,9 @@ const custom = atom({ plugin: 'tangent', key: 'custom' } as const, [])
 const off = atom({ plugin: 'tangent', key: 'off' } as const, [])
 const extra = atom({ plugin: 'tangent', key: 'extra' } as const, [])
 const notice = atom({ plugin: 'tangent', key: 'notice' } as const, '')
+// Windows Terminal 'Ubuntu' scheme; change here for another palette
+const THEME = { bg: '#300A24', fg: '#EEEEEC', dim: '#D0CFCC', accent: '#E9AD0C', info: '#33C7DE', error: '#F66151' }
+
 const PANE = 'tangent-delims'
 
 export function parseCode(code: string): { model: string; effort: ModelEffort } | undefined {
@@ -282,7 +285,7 @@ async function resetDelims($: EngineInterface): Promise<string> {
 
 async function openPicker($: EngineInterface): Promise<void> {
   await update($, notice, () => '')
-  await $.ui.open({ id: PANE, title: 'tangent delimiters', focus: true, closeOnEscape: true, rows: 14 })
+  await $.ui.open({ id: PANE, title: 'tangent delimiters', focus: true, rows: 14 })
 }
 
 // Runs a picker action and shows what it said in the pane's notice line.
@@ -414,35 +417,41 @@ export const register: Register = (on, options) => {
     const fromOptions = await read($, extra)
     const note = await read($, notice)
 
+    const fg = { color: THEME.fg, backgroundColor: THEME.bg }
+
     return (
-      <Box flexDirection="column" paddingX={1}>
-        <Text dimColor>Type || question || (a space after the closing mark asks). Tab or arrows move, Enter presses.</Text>
+      <Box flexDirection="column" paddingX={1} backgroundColor={THEME.bg}>
+        <Text color={THEME.dim} backgroundColor={THEME.bg}>
+          Type || question || (a space after the closing mark asks). Tab or arrows move, Enter presses.
+        </Text>
         {DEFAULT_DELIMS.map(([o, c]) => (
-          <Box flexDirection="row">
-            <Text>{`${o} question ${c}  `}</Text>
+          <Box flexDirection="row" backgroundColor={THEME.bg}>
+            <Text {...fg}>{`${o} question ${c}  `}</Text>
             <Button
               key={`toggle:${o}`}
-              label={disabled.includes(o) ? 'off' : 'on'}
               onPress={() => {
                 void say($, toggleBuiltin($, o))
               }}
-            />
+            >
+              <Text {...fg}>{disabled.includes(o) ? 'off' : 'on'}</Text>
+            </Button>
           </Box>
         ))}
         {mine.map(([o, c]) => (
-          <Box flexDirection="row">
-            <Text>{`${o} question ${c}  `}</Text>
+          <Box flexDirection="row" backgroundColor={THEME.bg}>
+            <Text {...fg}>{`${o} question ${c}  `}</Text>
             <Button
               key={`remove:${o}`}
-              label="remove"
               onPress={() => {
                 void say($, removePair($, o))
               }}
-            />
+            >
+              <Text {...fg}>remove</Text>
+            </Button>
           </Box>
         ))}
         {fromOptions.map(([o, c]) => (
-          <Text dimColor>{`${o} question ${c}  (from plugin options)`}</Text>
+          <Text color={THEME.dim} backgroundColor={THEME.bg}>{`${o} question ${c}  (from plugin options)`}</Text>
         ))}
         <Input
           key="add"
@@ -454,14 +463,15 @@ export const register: Register = (on, options) => {
             void addFromInput($, value)
           }}
         />
-        {note !== '' && <Text color="yellow">{note}</Text>}
+        {note !== '' && <Text color={THEME.error} backgroundColor={THEME.bg}>{note}</Text>}
         <Button
           key="done"
-          label="done"
           onPress={() => {
             void $.ui.close({ id: PANE })
           }}
-        />
+        >
+          <Text {...fg}>done</Text>
+        </Button>
       </Box>
     )
   })

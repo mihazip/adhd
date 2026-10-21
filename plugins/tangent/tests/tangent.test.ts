@@ -208,7 +208,8 @@ test('/tangent delims with no args opens the picker pane', async ($, on) => {
   })
   const r = await $.command.run({ command: 'tangent', args: 'delims' } as never)
   expect(r.text).toContain('pane opened')
-  expect(opened[0]).toMatchObject({ id: 'tangent-delims', title: 'tangent delimiters', focus: true, closeOnEscape: true })
+  expect(opened[0]).toMatchObject({ id: 'tangent-delims', title: 'tangent delimiters', focus: true })
+  expect(opened[0]).not.toHaveProperty('closeOnEscape')
 })
 
 test('the picker toggles built-ins, adds and removes pairs, and closes', async ($, on) => {

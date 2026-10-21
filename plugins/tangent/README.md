@@ -41,7 +41,7 @@ letters, digits or spaces, and needs a query of 2+ words like `||`. The built-in
 `/tangent delims` opens a small picker pane: an on/off button per built-in, a
 remove button per custom pair, a field to add one (`open close`, close
 optional) and a done button. Tab or the arrows walk the rows, Enter presses,
-Esc closes. The same things as text, for scripting:
+Esc only hands the keys back (done closes). The picker uses the Windows Terminal "Ubuntu" palette (`THEME` in `hooks/register.tsx`). The same things as text, for scripting:
 
 ```
 /tangent delims add ;;;          same string both sides

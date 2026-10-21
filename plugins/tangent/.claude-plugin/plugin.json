@@ -1,6 +1,6 @@
 {
   "name": "tangent",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Type a question between pipes mid-sentence: a space after the closing pipes asks Haiku in the background and writes the answer back into your draft.",
   "author": {
     "name": "mihazip",
