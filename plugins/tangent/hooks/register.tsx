@@ -352,7 +352,8 @@ async function loadDelims($: EngineInterface, opened: unknown, closed: unknown):
 
 async function setPreset($: EngineInterface, args: string): Promise<{ text: string }> {
   const code = args.trim().toLowerCase()
-  if (/^delims(\s|$)/.test(code)) return setDelims($, args.trim().slice('delims'.length))
+  const sub = /^delim(?:iter)?s?(?=\s|$)/.exec(code)
+  if (sub) return setDelims($, args.trim().slice(sub[0].length))
   if (!code) {
     const p = parseCode(await read($, preset))!
     return {
@@ -362,7 +363,13 @@ async function setPreset($: EngineInterface, args: string): Promise<{ text: stri
     }
   }
   const p = parseCode(code)
-  if (!p) return { text: 'Code is a model letter (h s o f) plus a level (l m h x, or xx for max), e.g. hm, sh, fxx.' }
+  if (!p) {
+    return {
+      text:
+        'Usage: /tangent <code> sets the default; code is a model letter (h s o f) plus a level (l m h x, or xx for max), e.g. hm, sh, fxx.\n' +
+        'Or /tangent delims [add <open> [close] | remove <open> | on <builtin> | off <builtin> | reset] edits the delimiters.',
+    }
+  }
   await update($, preset, () => code)
   await $.store.set('preset', code)
   return { text: `tangent default is now ${p.model} ${p.effort}.` }

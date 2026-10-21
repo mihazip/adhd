@@ -252,6 +252,20 @@ test('/tangent sets and shows the default', async ($, on) => {
   expect(saved.get('preset')).toBe('sm')
   expect((await run(''))).toContain('sonnet medium')
   expect((await run('qq'))).toContain('model letter')
+  expect((await run('qq'))).toContain('/tangent delims')
+})
+
+test('/tangent delim, delims, delimiter and delimiters are the same subcommand', async ($, on) => {
+  const run = async (args: string) => (await $.command.run({ command: 'tangent', args } as never)).text
+  fakeStore($, on)
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  for (const word of ['delim', 'delims', 'delimiter', 'delimiters', 'Delimiters']) {
+    expect(await run(word)).toContain('pane opened')
+    expect(await run(`${word} bogus`)).toContain('Usage')
+  }
+  expect(await run('delimiter add ;;;')).toContain(';;; question ;;;')
+  expect(await run('delim remove ;;;')).toContain('Removed')
+  expect(await run('delimsx')).toContain('model letter')
 })
 
 test('a prompt with no tags passes untouched', async ($, on) => {
