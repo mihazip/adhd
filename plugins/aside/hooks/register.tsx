@@ -64,6 +64,30 @@ const FRAMES = {
     '         ⠈⠙⣿⣧⡀      ',
   ],
 } as const
+// Colour of one cell of a frame, by region (the same for every frame); unpainted cells stay dim.
+function birdColor(row: number, col: number): string {
+  if (row <= 1 || (row === 2 && col >= 10) || (row === 3 && col >= 12)) return THEME.bird.wing
+  if (row === 2 && col >= 5) return THEME.bird.head
+  if (row === 3 && col <= 4) return THEME.bird.beak
+  if (row === 3 && col <= 7) return THEME.bird.throat
+  if (row === 4 && col >= 7 && col <= 8) return THEME.bird.throat
+  if (row === 3 || (row === 4 && col >= 9 && col <= 12)) return THEME.bird.body
+  if (row === 5) return THEME.bird.tail
+  return THEME.dim
+}
+
+// One frame row as runs of equally coloured cells.
+function birdRuns(row: number, text: string): { color: string; text: string }[] {
+  const runs: { color: string; text: string }[] = []
+  Array.from(text).forEach((ch, col) => {
+    const color = ch === ' ' ? THEME.bg : birdColor(row, col)
+    const last = runs[runs.length - 1]
+    if (last && last.color === color) last.text += ch
+    else runs.push({ color, text: ch })
+  })
+  return runs
+}
+
 const FLUTTER = [FRAMES.up, FRAMES.mid, FRAMES.down, FRAMES.mid] as const
 const FLUTTER_MS = 1500
 const BEAT_MS = 60

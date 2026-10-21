@@ -20,7 +20,7 @@ Restart Claude Code, then run `/aside`. Part of the [hyperfocus](../../README.md
 - Type a question in the pane and press Enter.
 - Follow-ups ("all of them", "more") continue the previous exchange (last 6 are sent as history).
 - Open it with `/aside`.
-- A braille hummingbird flutters for a moment when the pane opens. It shows only on the empty start screen and only when the pane has room.
+- A coloured braille hummingbird (palette in `THEME.bird`) flutters for a moment when the pane opens. It shows only on the empty start screen and only when the pane has room.
 - Arrow Up/Down and Tab walk between the input and the options; Esc hands the keys back to the prompt and leaves the pane open, with its log and unsent text.
 - **Return synopsis to prompt** (once there is an answer) appends a short note with the last Q and A to your main prompt box.
 - Press **more** under it to unfold the options, **less** (same place) to fold them again:
