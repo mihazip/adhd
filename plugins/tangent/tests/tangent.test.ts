@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { SYSTEM, buildPrompt, findQuery, parseCode, parseDelims, tag } from '../hooks/register'
+import { SYSTEM, buildPrompt, findQuery, parseCode, parseDelims, withCustom, tag } from '../hooks/register'
 
 const B = '\\'.repeat(3)
 
@@ -52,8 +52,13 @@ test('custom delimiters, same or paired, with regex specials', () => {
   expect(findQuery(pair, pair.length - 1, [['[[', ']]']])).toEqual({ start: 2, query: 'what is 2+2', code: 'h' })
   const arrows = 'x >>>q<<< '
   expect(findQuery(arrows, arrows.length - 1, [['>>>', '<<<']])?.query).toBe('q')
-  // defaults no longer apply once custom delimiters are set
+  // defaults still match next to a custom pair
   const old = `${B}q${B} `
+  expect(findQuery(old, old.length - 1, withCustom([[';;;', ';;;']]))?.query).toBe('q')
+  const sl = 'a ///q/// '
+  expect(findQuery(sl, sl.length - 1, withCustom([[';;;', ';;;']]))?.query).toBe('q')
+  expect(findQuery(same, same.length - 1, withCustom([[';;;', ';;;']]))?.query).toBe('why is it so')
+  // without defaults in the list, they do not match
   expect(findQuery(old, old.length - 1, [[';;;', ';;;']])).toBeUndefined()
   expect(findQuery('a .*.q.*. ', 9, [['.*.', '.*.']])?.query).toBe('q')
 })
@@ -80,12 +85,15 @@ test('/tangent delims sets, shows and resets', async ($, on) => {
     saved.delete(e.key)
     return { value: undefined }
   })
-  expect(await run('delims ;;;')).toContain('now ;;; question ;;;')
+  expect(await run('delims ;;;')).toContain('/// question ///  or  ;;; question ;;;')
   expect(saved.get('delims')).toEqual([';;;', ';;;'])
   expect(await run('delims >>> <<<')).toContain('>>> question <<<')
-  expect(await run('')).toContain('>>> question <<<')
+  const shown = await run('')
+  expect(shown).toContain('>>> question <<<')
+  expect(shown).toContain('/// question ///')
+  expect(shown).not.toContain(';;; question')
   expect(await run('delims a')).toContain('Usage')
-  expect(await run('delims reset')).toContain('reset')
+  expect(await run('delims reset')).toContain('removed')
   expect(saved.has('delims')).toBe(false)
   expect(await run('')).toContain('/// question ///')
 })

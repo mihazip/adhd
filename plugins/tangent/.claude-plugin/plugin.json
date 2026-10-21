@@ -17,7 +17,7 @@
     "open": {
       "type": "string",
       "title": "Opening delimiter",
-      "description": "Custom opening delimiter, 2+ characters, no letters or spaces (e.g. ;;; or [[). Empty keeps the defaults (three backslashes or three slashes). /tangent delims overrides it.",
+      "description": "Extra opening delimiter, 2+ characters, no letters or spaces (e.g. ;;; or [[). Added next to the defaults (three backslashes, three slashes), which keep working. /tangent delims overrides it.",
       "required": false
     },
     "close": {

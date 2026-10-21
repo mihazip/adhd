@@ -185,6 +185,11 @@ async function start($: EngineInterface, text: string, found: { start: number; q
   return job.tag
 }
 
+// The defaults always work; a custom pair is added after them.
+export function withCustom(custom: Delims | undefined): Delims {
+  return custom ? [...DEFAULT_DELIMS, ...custom] : DEFAULT_DELIMS
+}
+
 function showDelims(pairs: Delims): string {
   return pairs.map(([o, c]) => `${o} question ${c}`).join('  or  ')
 }
@@ -194,7 +199,7 @@ async function setDelims($: EngineInterface, args: string): Promise<{ text: stri
   if (first === 'reset' && !second) {
     await $.store.delete('delims')
     await update($, delims, () => DEFAULT_DELIMS)
-    return { text: `tangent delimiters reset: ${showDelims(DEFAULT_DELIMS)}` }
+    return { text: `tangent custom delimiters removed. Active: ${showDelims(DEFAULT_DELIMS)}` }
   }
   const pair = first && !extra.length ? parseDelims([first, second ?? first]) : undefined
   if (!pair) {
@@ -202,9 +207,10 @@ async function setDelims($: EngineInterface, args: string): Promise<{ text: stri
       text: 'Usage: /tangent delims <open> [close] or /tangent delims reset. Each is 2+ characters, no letters or spaces, e.g. ;;; or >>> <<<.',
     }
   }
-  await update($, delims, () => pair)
+  const all = withCustom(pair)
+  await update($, delims, () => all)
   await $.store.set('delims', pair[0])
-  return { text: `tangent delimiters are now ${showDelims(pair)}` }
+  return { text: `tangent delimiters are now ${showDelims(all)}` }
 }
 
 async function setPreset($: EngineInterface, args: string): Promise<{ text: string }> {
@@ -215,7 +221,7 @@ async function setPreset($: EngineInterface, args: string): Promise<{ text: stri
     return {
       text:
         `tangent default: ${p.model} ${p.effort}. Set with /tangent <code>, e.g. /tangent sm.\n` +
-        `Delimiters: ${showDelims(await read($, delims))}. Change with /tangent delims <open> [close] or /tangent delims reset.`,
+        `Delimiters: ${showDelims(await read($, delims))}. Change with /tangent delims <open> [close] or /tangent delims reset (removes only the custom pair).`,
     }
   }
   const p = parseCode(code)
@@ -257,12 +263,12 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const saved = await $.store.get('preset')
     if (typeof saved === 'string' && parseCode(saved)) await update($, preset, () => saved)
-    // /tangent delims (store) beats the plugin options; both fall back to the defaults.
+    // One extra pair on top of the defaults: /tangent delims (store) beats the plugin options.
     const opened = options?.open
     const closed = options?.close
     const fromOptions = typeof opened === 'string' && opened ? parseDelims([opened, closed || opened]) : undefined
     const chosen = parseDelims(await $.store.get('delims')) ?? fromOptions
-    if (chosen) await update($, delims, () => chosen)
+    if (chosen) await update($, delims, () => withCustom(chosen))
     await $.command.register({
       name: 'tangent',
       description: 'Show or set the default model+level for \\\\\\ inline questions \\\\\\ (e.g. /tangent hm)',
