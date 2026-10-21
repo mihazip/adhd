@@ -34,7 +34,7 @@ Restart Claude Code, then run `/aside`. Part of the [hyperfocus](../../README.md
 - Model and effort are remembered across sessions. The pane title shows the model.
 - Each question is one call to the chosen model, plus one short haiku call (low effort) when an answer is long enough to need a synopsis.
 - The side chat itself lives in memory for the session.
-- The pane uses only your terminal's default colors, bold and dim.
+- Colors come from one `THEME` object in `hooks/register.tsx`, set for the Windows Terminal "Ubuntu" scheme (aubergine background, white text, yellow questions, cyan notices). Change it there for another palette. Every Text and Button label carries explicit colors so the focused button stays readable; Input and Markdown take no color props and use the terminal defaults.
 
 ## Layout
 

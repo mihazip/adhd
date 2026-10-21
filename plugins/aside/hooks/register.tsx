@@ -15,6 +15,18 @@ const SYSTEM =
   'Always give a direct best-effort answer; never ask for clarification unless the question is truly unanswerable. ' +
   'Treat follow-ups ("all of them", "more") as continuing the previous exchange. ' +
   'Long lists are fine when asked: give them in full, compactly. Plain text or short markdown, no preamble, no filler.'
+// Windows Terminal 'Ubuntu' scheme; change here for another palette.
+const THEME = {
+  bg: '#300A24',
+  fg: '#EEEEEC',
+  dim: '#D0CFCC',
+  accent: '#E9AD0C',
+  info: '#33C7DE',
+  select: '#4E1E3F',
+} as const
+// Every Text carries explicit colors, so a focused element (drawn as the inverse of its label) stays readable.
+const TEXT = { color: THEME.fg, backgroundColor: THEME.bg } as const
+const HINT = { color: THEME.dim, backgroundColor: THEME.bg } as const
 const LEVELS = ['low', 'medium', 'high'] as const
 
 // Hummingbird in braille, 6 rows x 20 columns per frame.
@@ -221,24 +233,30 @@ export const register: Register = on => {
     const showBird = items.length === 0 && body >= BIRD_MIN_BODY
 
     return (
-      <Box flexDirection="column" paddingX={1}>
+      <Box flexDirection="column" paddingX={1} backgroundColor={THEME.bg}>
         {showBird && (
           <Box flexDirection="column">
             {bird.map(row => (
-              <Text>{row}</Text>
+              <Text {...HINT}>{row}</Text>
             ))}
           </Box>
         )}
-        {items.length === 0 && <Text dimColor>Ask anything. Enter asks {name}, main session untouched.</Text>}
+        {items.length === 0 && <Text {...HINT}>Ask anything. Enter asks {name}, main session untouched.</Text>}
         {items.slice(-room).map(it => (
           <Box flexDirection="column">
-            <Text bold>? {it.q}</Text>
+            <Text bold color={THEME.accent} backgroundColor={THEME.bg}>
+              ? {it.q}
+            </Text>
             <Markdown text={it.a} />
           </Box>
         ))}
-        {busy && <Text dimColor>{name} is thinking...</Text>}
-        {note !== '' && <Text>{note}</Text>}
-        <Text> </Text>
+        {busy && <Text color={THEME.accent} backgroundColor={THEME.bg}>
+            {name} is thinking...
+          </Text>}
+        {note !== '' && <Text color={THEME.info} backgroundColor={THEME.bg}>
+            {note}
+          </Text>}
+        <Text {...TEXT}> </Text>
         <Input
           key="q"
           placeholder="question"
@@ -253,7 +271,7 @@ export const register: Register = on => {
             void ask($, value)
           }}
         />
-        <Text> </Text>
+        <Text {...TEXT}> </Text>
         <Box flexDirection="column">
           {lastItem && (
             <Button
@@ -262,19 +280,37 @@ export const register: Register = on => {
               onPress={() => {
                 void giveBack($, lastItem)
               }}
-            />
+            >
+              <Text {...TEXT}>Return synopsis to prompt</Text>
+            </Button>
           )}
-          <Button key="toggle" label={more ? 'less' : 'more'} onPress={() => setMore($, !more)} />
-          {more && <Button key="model" label={`Model: ‹ ${name} ›`} onPress={() => nextModel($)} />}
-          {more && <Button key="effort" label={`Effort: ‹ ${lvl} ›`} onPress={() => nextEffort($)} />}
+          <Button key="toggle" label={more ? 'less' : 'more'} onPress={() => setMore($, !more)}>
+            <Text {...TEXT}>{more ? 'less' : 'more'}</Text>
+          </Button>
+          {more && (
+            <Button key="model" label={`Model: ‹ ${name} ›`} onPress={() => nextModel($)}>
+              <Text {...TEXT}>{`Model: ‹ ${name} ›`}</Text>
+            </Button>
+          )}
+          {more && (
+            <Button key="effort" label={`Effort: ‹ ${lvl} ›`} onPress={() => nextEffort($)}>
+              <Text {...TEXT}>{`Effort: ‹ ${lvl} ›`}</Text>
+            </Button>
+          )}
           {more && (
             <Button
               key="auto"
               label={auto ? 'Auto-return: on' : 'Auto-return: off'}
               onPress={() => update($, isAuto, v => !v)}
-            />
+            >
+              <Text {...TEXT}>{auto ? 'Auto-return: on' : 'Auto-return: off'}</Text>
+            </Button>
           )}
-          {more && <Button key="clear" label="Clear" onPress={() => update($, log, () => [])} />}
+          {more && (
+            <Button key="clear" label="Clear" onPress={() => update($, log, () => [])}>
+              <Text {...TEXT}>Clear</Text>
+            </Button>
+          )}
         </Box>
       </Box>
     )
