@@ -233,7 +233,13 @@ export const register: Register = on => {
     const showBird = items.length === 0 && body >= BIRD_MIN_BODY
 
     return (
-      <Box flexDirection="column" paddingX={1} backgroundColor={THEME.bg}>
+      <Box
+        flexDirection="column"
+        paddingX={1}
+        width={e.props.bodyColumns}
+        minHeight={body}
+        backgroundColor={THEME.bg}
+      >
         {showBird && (
           <Box flexDirection="column">
             {bird.map(row => (
@@ -274,7 +280,7 @@ export const register: Register = on => {
         <Text {...TEXT}> </Text>
         <Box flexDirection="column">
           {lastItem && (
-            <Button
+            <Button plain
               key="return"
               label="Return synopsis to prompt"
               onPress={() => {
@@ -284,21 +290,21 @@ export const register: Register = on => {
               <Text {...TEXT}>Return synopsis to prompt</Text>
             </Button>
           )}
-          <Button key="toggle" label={more ? 'less' : 'more'} onPress={() => setMore($, !more)}>
+          <Button plain key="toggle" label={more ? 'less' : 'more'} onPress={() => setMore($, !more)}>
             <Text {...TEXT}>{more ? 'less' : 'more'}</Text>
           </Button>
           {more && (
-            <Button key="model" label={`Model: ‹ ${name} ›`} onPress={() => nextModel($)}>
+            <Button plain key="model" label={`Model: ‹ ${name} ›`} onPress={() => nextModel($)}>
               <Text {...TEXT}>{`Model: ‹ ${name} ›`}</Text>
             </Button>
           )}
           {more && (
-            <Button key="effort" label={`Effort: ‹ ${lvl} ›`} onPress={() => nextEffort($)}>
+            <Button plain key="effort" label={`Effort: ‹ ${lvl} ›`} onPress={() => nextEffort($)}>
               <Text {...TEXT}>{`Effort: ‹ ${lvl} ›`}</Text>
             </Button>
           )}
           {more && (
-            <Button
+            <Button plain
               key="auto"
               label={auto ? 'Auto-return: on' : 'Auto-return: off'}
               onPress={() => update($, isAuto, v => !v)}
@@ -307,7 +313,7 @@ export const register: Register = on => {
             </Button>
           )}
           {more && (
-            <Button key="clear" label="Clear" onPress={() => update($, log, () => [])}>
+            <Button plain key="clear" label="Clear" onPress={() => update($, log, () => [])}>
               <Text {...TEXT}>Clear</Text>
             </Button>
           )}
