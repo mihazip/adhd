@@ -5,8 +5,6 @@ import type { Exchange } from '../types'
 
 const PANE = 'aside'
 const PANE_ROWS = 10
-const TRIGGER = '?? '
-const HINT = 'aside: type "?? " or /aside for a side pane'
 const MODEL = 'haiku'
 const SYSTEM =
   'You are a fast side-answer helper for a developer with scattered, casual questions. ' +
@@ -59,10 +57,16 @@ function flutter($: EngineInterface): void {
   })
 }
 
+async function isPaneOpen($: EngineInterface): Promise<boolean> {
+  return (await $.ui.panes()).some(p => p.id === PANE)
+}
+
+// Shared by /aside and the band button; never stacks a second pane.
 async function openPane($: EngineInterface): Promise<void> {
-  $.ui.status(undefined)
+  if (await isPaneOpen($)) return
   await $.ui.open({ id: PANE, title: 'aside (haiku)', focus: true, closeOnEscape: true, rows: PANE_ROWS })
   flutter($)
+  $.ui.invalidate('ui.render')
 }
 
 async function ask($: EngineInterface, q: string): Promise<void> {
@@ -128,21 +132,21 @@ export const register: Register = on => {
       name: 'aside',
       description: 'Side pane: ask Haiku quick questions outside the main session',
     })
-    $.ui.status(HINT)
 
     return next(e)
   })
 
-  // A draft that starts with "?? " opens the pane; the trigger is stripped from the draft.
-  on('prompt.edit', async ($, e, next) => {
-    const r = await next(e)
-    if (!r.text.startsWith(TRIGGER)) return r
+  // One dim row above the prompt with a single button; yields to surveys and to an open pane.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey || (await isPaneOpen($))) return next(e)
 
-    $.clock.after(50, () => {
-      void openPane($)
-    })
+    const { Box, Button } = $.ui.resolve(e)
 
-    return { ...r, text: r.text.slice(TRIGGER.length), cursor: 0 }
+    return (
+      <Box justifyContent="flex-end">
+        <Button key="open" label="aside" onPress={() => openPane($)} />
+      </Box>
+    )
   })
 
   on('command.run', { command: 'aside' }, async $ => {
