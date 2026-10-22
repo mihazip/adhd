@@ -11,12 +11,12 @@
     {
       "name": "aside",
       "source": "./plugins/aside",
-      "description": "/aside: a side pane that asks Haiku quick questions outside the main session, with an optional synopsis back to the prompt."
+      "description": "/aside: a side pane for quick questions to a side model (haiku, sonnet, opus or fable) outside the main session, with an optional synopsis back to the prompt."
     },
     {
       "name": "tangent",
       "source": "./plugins/tangent",
-      "description": "Ask a question between triple stripes mid-sentence; the answer is written back into your draft in place."
+      "description": "Ask a question between || pipes || (or your own delimiters) mid-sentence; the answer is written back into your draft in place."
     }
   ]
 }
