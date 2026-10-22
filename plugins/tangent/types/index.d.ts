@@ -17,6 +17,10 @@ declare module 'claude-code' {
       jobs: Record<string, Job>
       preset: string
       held: string
+      custom: [open: string, close: string][]
+      off: string[]
+      extra: [open: string, close: string][]
+      notice: string
     }
   }
 }

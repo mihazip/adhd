@@ -10,7 +10,7 @@ your train of thought stay where they were.
 | Mod | What it does |
 | --- | --- |
 | [aside](plugins/aside) | `/aside` opens a side pane with its own input box. Ask Haiku anything; optionally send a short synopsis back to your prompt. |
-| [tangent](plugins/tangent) | Type a question between triple stripes mid-sentence (`\\\ like this \\\` or `/// like this ///`). A space after the closing stripes asks in the background and writes the answer into your draft in place. |
+| [tangent](plugins/tangent) | Type a question between pipes mid-sentence (`|| like this ||`; `\\\` and `///` work too). A space after the closing pipes asks in the background and writes the answer into your draft in place. |
 
 ## Install
 
