@@ -105,6 +105,9 @@ const wing = atom({ plugin: 'aside', key: 'wing' } as const, -1)
 // The unsent text in the input, so it survives closing and reopening the pane.
 const draft = atom({ plugin: 'aside', key: 'draft' } as const, '')
 const isMore = atom({ plugin: 'aside', key: 'isMore' } as const, false)
+// The breakout game fills the top two thirds of a tall pane; off by default.
+const isGame = atom({ plugin: 'aside', key: 'isGame' } as const, false)
+const GAME_MIN_BODY = 20
 
 // "more" and "less" share one key, so the focus ring stays where the person pressed.
 async function setMore($: EngineInterface, on: boolean): Promise<void> {
@@ -240,7 +243,7 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Button, Input, Markdown } = $.ui.resolve(e)
+    const { Box, Text, Button, Input, Markdown, Client } = $.ui.resolve(e)
     const items = await read($, log)
     const busy = await read($, isBusy)
     const auto = await read($, isAuto)
@@ -249,12 +252,14 @@ export const register: Register = on => {
     const note = await read($, notice)
     const more = await read($, isMore)
     const typed = await read($, draft)
-    const room = Math.max(1, Math.floor(((e.viewport?.rows ?? 24) - 8) / 3))
+    const game = await read($, isGame)
     const lastItem = items[items.length - 1]
     const w = await read($, wing)
     const bird = FLUTTER[w] ?? FRAMES.rest
     const body = e.props.scroll?.bodyRows ?? e.viewport?.rows ?? 24
-    const showBird = items.length === 0 && body >= BIRD_MIN_BODY
+    const gameRows = game && body >= GAME_MIN_BODY ? Math.floor((body * 2) / 3) : 0
+    const room = Math.max(1, Math.floor((body - gameRows - 8) / 3))
+    const showBird = items.length === 0 && gameRows === 0 && body >= BIRD_MIN_BODY
 
     return (
       <Box
@@ -264,6 +269,7 @@ export const register: Register = on => {
         minHeight={body}
         backgroundColor={THEME.bg}
       >
+        {gameRows > 0 && <Client key="breakout" module="./breakout.tsx" height={gameRows} />}
         {showBird && (
           <Box flexDirection="column">
             {bird.map(row => (
@@ -339,6 +345,11 @@ export const register: Register = on => {
           {more && (
             <Button plain key="clear" label="Clear" onPress={() => update($, log, () => [])}>
               <Text {...TEXT}>Clear</Text>
+            </Button>
+          )}
+          {more && (
+            <Button plain key="game" label={game ? 'Game: on' : 'Game: off'} onPress={() => update($, isGame, v => !v)}>
+              <Text {...TEXT}>{game ? 'Game: on' : 'Game: off'}</Text>
             </Button>
           )}
           <Button plain key="close" label="Close" onPress={() => $.ui.close({ id: PANE })}>

@@ -11,6 +11,7 @@ declare module 'claude-code' {
       notice: string
       wing: number
       isMore: boolean
+      isGame: boolean
       draft: string
     }
   }
