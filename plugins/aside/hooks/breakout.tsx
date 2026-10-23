@@ -2,7 +2,7 @@ import type { ClientModule } from 'claude-code'
 
 // Surface module: a tiny breakout drawn in the top of the aside pane.
 // Row 0 is the HUD, the ceiling is row 1, the paddle sits on the last row.
-// Mouse over the game moves the paddle; click or space launches the ball.
+// Mouse over the game moves the paddle; a click launches the ball.
 // Arrow keys / a d work once the game has been clicked (that gives it focus).
 
 type Game = {
@@ -126,7 +126,7 @@ function hud(g: Game): string {
   if (g.over === 'won') return `You win! score ${g.score}. Click to play again`
   if (g.over === 'lost') return `Game over, score ${g.score}. Click to play again`
   const hearts = '♥'.repeat(g.lives)
-  if (!g.isLive) return `${hearts} score ${g.score}  click or space to launch`
+  if (!g.isLive) return `${hearts} score ${g.score}  click to launch`
   return `${hearts} score ${g.score}`
 }
 
@@ -192,7 +192,6 @@ const Breakout: ClientModule<null, Game> = (_props, surface) => {
     surface.onKey(e => {
       if (e.key === 'left' || e.key === 'a') commit(movePaddle(cur, cur.px - 3))
       else if (e.key === 'right' || e.key === 'd') commit(movePaddle(cur, cur.px + 3))
-      else if (e.key === ' ' || e.key === 'return' || e.key === 'up') commit(launch(cur))
     })
     surface.setState(cur)
   }
